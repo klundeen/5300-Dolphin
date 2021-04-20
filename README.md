@@ -45,3 +45,4 @@ $ git checkout tags/Milestone2
 $ make
 ```
 ## Handoff Information for Sprint 1
+We believe we have provided all of the necessary code. All methods are commented with relevant information and documented. We implemented them to the best of our ability, however, due to time constraints, the code still has a few errors when attempting to compile. Our best attempt was made at clearing as many errors as possible. Contact Nathan or Hailey if there are any questions. Best of luck on Sprint 2.
