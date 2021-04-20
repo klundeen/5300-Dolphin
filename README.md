@@ -44,3 +44,4 @@ In the directory where ```https://github.com/klundeen/5300-Dolphin.git``` is clo
 $ git checkout tags/Milestone2
 $ make
 ```
+## Handoff Information for Sprint 1
