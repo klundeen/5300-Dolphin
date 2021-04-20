@@ -5,19 +5,21 @@
 using namespace std;
 typedef u_int16_t u16
 
+<<<<<<< HEAD
 bool test_heap_storage() {return true;}
 
 /**
  * ---------------------------Slotted Page/DbBlock---------------------------
  */
+// construct slottedPage
 SlottedPage::SlottedPage(Dbt &block, BlockID block_id, bool is_new = false) {
-  if (is_new) {
+    if (is_new) {
         this->num_records = 0;
         this->end_free = DbBlock::BLOCK_SZ - 1;
         put_header();
-  } else {
+    } else {
         get_header(this->num_records, this->end_free);
-  }
+    }
 }
 
 //adds a new record to the block
@@ -51,14 +53,15 @@ Dbt* SlottedPage::get(RecordID recordID){
 
 //remove record by id
 //set location and id to 0 to show removed
-void SlottedPage::delete(RecordID recordID){
-    u16 size;
-    u16 loc;
-    get_header(size, loc, recordID);
-    put_header(recordID, 0, 0);
+void SlottedPage::del(RecordID recordID){
+u16 size;
+u16 loc;
+get_header(size, loc, recordID);
+put_header(recordID, 0, 0);
 
 }
 
+// iterate through all record ID's, return list of them
 RecordIDs* SlottedPage::ids(void){
     RecordIDs *result = new RecordIDs;
     u16 size;
@@ -87,13 +90,14 @@ void put_header(RecordID id = 0, u_int16_t size = 0, u_int16_t loc = 0){
     put_n(4*id + 2, loc);
 }
 
-//
+// return whether or not can add more records to slotted page
 bool SlottedPage::has_room(u_int16_t size) {
-  u16 capacity;
-  capacity = this->end_free -(4 * (this->num_records + 1));
-  return size <= capacity;
+    u16 capacity;
+    capacity = this->end_free -(4 * (this->num_records + 1));
+    return size <= capacity;
 }
 
+// shift records to right of slotted page
 void SlottedPage::slide(u_int16_t start, u_int16_t end){
     u16 shift = end - start;
     if (shift == 0){
@@ -101,13 +105,13 @@ void SlottedPage::slide(u_int16_t start, u_int16_t end){
     }
 
     //do the slide
-    memcpy(this->address(this->end_free + 1 + shift), ))         //FIXME
+    memcpy(this->address(this->end_free + 1 + shift));
 
     //move headers to right
     RecordIDs* record_ids = this->ids();
-    for(unsigned int i=0; i < record_ids->size(); i++){        
+    for(unsigned int i=0; i < record_ids->size(); i++){
         u16 loc;
-        u16 size; 
+        u16 size;
         get_header(size, loc, temp->at(i));
         if (loc <= start){
             loc += shift;
@@ -125,45 +129,52 @@ void SlottedPage::slide(u_int16_t start, u_int16_t end){
  * ---------------------------Heapfile/DbFile---------------------------
  */
 
+// construct HeapFile
 HeapFile::HeapFile(string name) : DbFile(name), dbfilename(""), last(0), closed(true), db(_DB_ENV, 0) {}
 
 //wrapper for berkdb open
 void HeapFile::db_open(uint flags) {
-	if (!this->closed) 
-		return;
+    if (!this->closed)
+        return;
 
-	this->db.set_re_len(DbBlock::BLOCK_SZ);
+    this->db.set_re_len(DbBlock::BLOCK_SZ);
     // get the correct name for db
     // need to test here to make sure it work
-	this->dbfilename = this->name + ".db";
-	this->db.open(nullptr, (this->dbfilename).c_str(), nullptr, DB_RECNO, flags, 0644);
-	DB_BTREE_STAT *stat;
-	this->db.stat(nullptr, &stat, DB_FAST_STAT);
-	this->last = flags ? 0 : stat->bt_ndata;
-	this->closed = false;
+    this->dbfilename = this->name + ".db";
+    this->db.open(nullptr, (this->dbfilename).c_str(), nullptr, DB_RECNO, flags, 0644);
+    DB_BTREE_STAT *stat;
+    this->db.stat(nullptr, &stat, DB_FAST_STAT);
+    this->last = flags ? 0 : stat->bt_ndata;
+    this->closed = false;
 }
 
+// create DB collection of slotted pages
 void HeapFile::create(void) {
     db_open(DB_CREATE | DB_EXCL);
     SlottedPage *block_page = get_new();
     delete block_page;
 }
 
+// closes & removes file of slotted pages
 void HeapFile::drop(void){
     close();
     Db db(_DB_ENV, 0);
     db.remove(this->dbfilename.c_str(), nullptr, 0);
 }
 
+// open DB file of slotted pages
 void HeapFile::open(void){
     db_open();
 }
 
+// close DB file of slotted pages
 void HeapFile::close(void){
     this->db.close(0);
     this->closed = true;
 }
 
+// create new empty slotted page and add it to DB file, return new
+// slotted page to be modded by client
 SlottedPage *HeapFile::get_new(void) {
     char block[DbBlock::BLOCK_SZ];
     memset(block, 0, sizeof(block));
@@ -174,7 +185,7 @@ SlottedPage *HeapFile::get_new(void) {
 
     // mangage memory with berkdb
     SlottedPage *page = new SlottedPage(data, this->last, true);
-    this->db.put(nullptr, &key, &data, 0); 
+    this->db.put(nullptr, &key, &data, 0);
     this->db.get(nullptr, &key, &data, 0);
     return page;
 }
@@ -318,7 +329,7 @@ ValueDict *HeapTable::validate(const ValueDict *row){
             val = row->at(column_name);
 
         }
-    full_row[column_name] = val;
+        full_row[column_name] = val;
     }
     return full_row;
 }
@@ -424,7 +435,7 @@ bool test_heap_storage() {
     ValueDict *result = table.project((*handles)[0]);
     std::cout << "project ok" << std::endl;
     Value value = (*result)["a"];
-    if (value.n != 12) 
+    if (value.n != 12)
         return false;
     value = (*result)["b"];
     if (value.s != "Hello!")
