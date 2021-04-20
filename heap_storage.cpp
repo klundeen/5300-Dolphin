@@ -7,7 +7,9 @@ typedef u_int16_t u16
 
 bool test_heap_storage() {return true;}
 
-
+/**
+ * ---------------------------Slotted Page/DbBlock---------------------------
+ */
 SlottedPage::SlottedPage(Dbt &block, BlockID block_id, bool is_new = false) {
   if (is_new) {
         this->num_records = 0;
@@ -120,7 +122,7 @@ void SlottedPage::slide(u_int16_t start, u_int16_t end){
 
 
 /**
- * ---------------------------Heapfile needs comment here---------------------------
+ * ---------------------------Heapfile/DbFile---------------------------
  */
 
 HeapFile::HeapFile(string name) : DbFile(name), dbfilename(""), last(0), closed(true), db(_DB_ENV, 0) {}
@@ -179,7 +181,14 @@ SlottedPage *HeapFile::get_new(void) {
 
 
 /**
- * ---------------------------Heaptable/dbrelation needs comment here---------------------------
+ * ---------------------------Heaptable/dbrelation ---------------------------
+ */
+
+/**
+ * Constructor for HeapTable.
+ * @param table_name Identifier for the table.
+ * @param column_names ColumnNames vector of identifiers.
+ * @param column_attributes ColumnAttributes vector of ColumnAttributes.
  */
 HeapTable::HeapTable(Identifier table_name, ColumnNames column_names, ColumnAttributes column_attributes)
 {
@@ -187,10 +196,18 @@ HeapTable::HeapTable(Identifier table_name, ColumnNames column_names, ColumnAttr
     this->file = HeapFile(table_name);
 }
 
+/**
+ * Creates table, does not validate or store
+ * CREATE TABLE  <name>
+ */
 void HeapTable::create(){
     this->file.create();
 }
 
+/**
+ * Creates table if does not exist, does not validate or store
+ * CREATE TABLE IF NOT EXIST <name>
+ */
 void HeapTable::create_if_not_exists(){
     try{
         this->open();
@@ -200,23 +217,46 @@ void HeapTable::create_if_not_exists(){
     }
 }
 
+/**
+ * Drops table
+ * DROP TABLE <name>
+ */
 void HeapTable::drop(){
     this->file.drop();
 }
 
+
+/**
+ * Opens table
+ */
 void HeapTable::open(){
     this->file.open();
 }
 
+/**
+ * Closes table
+ */
 void HeapTable::close(){
     this->file.close();
 }
 
+/**
+ * Execute an insert statement
+ * INSERT INTO < > VALUES < >
+ * @param ValueDict row 
+ * @return Handle 
+ */
 Handle HeapTable::insert(const ValueDict *row){
     this->open();
     return this->append(row);
 }
 
+/**
+ * Execute a select statement
+ * Select <> FROM <> WHERE 
+ * @param ValueDict where
+ * @return Handles
+ */
 Handles* HeapTable::select(const ValueDict *where){
     Handles* handles = new Handles();
     BlockIDs* block_ids = file.block_ids();
@@ -234,6 +274,12 @@ Handles* HeapTable::select(const ValueDict *where){
     delete handles;
 }
 
+
+/**
+ * Appends record to file
+ * @param ValueDict row 
+ * @return Handle BlockID, RecordID
+ */
 Handle HeapTable::append(const ValueDict *row){
     Dbt *data = this->marshal(row);
     SlottedPage *block = this.get(this->file.get_last_block_id());
@@ -250,7 +296,12 @@ Handle HeapTable::append(const ValueDict *row){
     this->file.put(block);
     return Handle(this->file.get_last_block_id, record_id);
 }
-
+/**
+ * Checks if provided row is valid for insert and
+ * returns the full row, gives error if not
+ * @param ValueDict row 
+ * @return ValueDict full_row 
+ */
 ValueDict *HeapTable::validate(const ValueDict *row){
     map <Identifier, Value> *full_row = {};
     uint col_num = 0;
@@ -272,7 +323,11 @@ ValueDict *HeapTable::validate(const ValueDict *row){
     return full_row;
 }
 
-//code provided in milestone prompt
+/**
+ * Marshals data
+ * @param ValueDict row of values
+ * @return Dbt data of now marshaled data
+ */
 Dbt* HeapTable::marshal(const ValueDict *row)
 {
     char *bytes = new char[DbBlock::BLOCK_SZ]; // more than we need (we insist that one row fits into DbBlock::BLOCK_SZ)
@@ -301,7 +356,11 @@ Dbt* HeapTable::marshal(const ValueDict *row)
     Dbt *data = new Dbt(right_size_bytes, offset);
     return data;
 }
-
+/**
+ * Unmarshals data
+ * @param Dbt data of pre-marshaled data
+ * @return ValueDict row
+ */
 ValueDict *unmarshal(Dbt *data){            //not done!
     uint offset = 0;
     uint col_num = 0;
@@ -329,7 +388,10 @@ ValueDict *unmarshal(Dbt *data){            //not done!
     return row;
 }
 
-// test function -- returns true if all tests pass
+/**
+ * Tests heap_storage functionality to determine if implementations are correct.
+ * @return True if tests pass, False otherwise.
+ */
 bool test_heap_storage() {
     ColumnNames column_names;
     column_names.push_back("a");
