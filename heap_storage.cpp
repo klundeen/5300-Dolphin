@@ -66,7 +66,7 @@ RecordIDs* SlottedPage::ids(void){
     u16 loc;
     for(u16 i = 1; i <= this->num_records;i++){
         if (loc != 0){
-            result->push_back(i)                //what is push back?
+            result->push_back(i);
         }
     }
     return result;
