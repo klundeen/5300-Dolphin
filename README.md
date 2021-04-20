@@ -4,6 +4,7 @@
 
 Sprint 1: Hailey Dice and Nathan Nishi
 ## Handoff Information for Sprint 1
+### See handoff video under Assets for download
 We believe we have provided all of the necessary code. All methods are commented with relevant information and documented. We implemented them to the best of our ability, however, due to time constraints, the code still has a few errors when attempting to compile. Our best attempt was made at clearing as many errors as possible. Contact Nathan or Hailey if there are any questions. Best of luck on Sprint 2.
 
 ## Sprint 1: Milestone 1 Skeleton
