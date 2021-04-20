@@ -49,7 +49,7 @@ Dbt* SlottedPage::get(RecordID recordID){
 
 //remove record by id
 //set location and id to 0 to show removed
-void SlottedPage::delete(RecordID recordID){
+void SlottedPage::del(RecordID recordID){
     u16 size;
     u16 loc;
     get_header(size, loc, recordID);
@@ -57,6 +57,7 @@ void SlottedPage::delete(RecordID recordID){
 
 }
 
+//
 RecordIDs* SlottedPage::ids(void){
     RecordIDs *result = new RecordIDs;
     u16 size;
@@ -85,13 +86,14 @@ void put_header(RecordID id = 0, u_int16_t size = 0, u_int16_t loc = 0){
     put_n(4*id + 2, loc);
 }
 
-//
+// returns whether or not slotted page has room to put in more records
 bool SlottedPage::has_room(u_int16_t size) {
   u16 capacity;
   capacity = this->end_free -(4 * (this->num_records + 1));
   return size <= capacity;
 }
 
+//
 void SlottedPage::slide(u_int16_t start, u_int16_t end){
     u16 shift = end - start;
     if (shift == 0){
@@ -270,7 +272,9 @@ Dbt* HeapTable::marshal(const ValueDict *row)
 }*/
 
 bool test_heap_storage() {
-    ColumnNames column_names;
+    
+
+    /*ColumnNames column_names;
     column_names.push_back("a");
     column_names.push_back("b");
     ColumnAttributes column_attributes;
@@ -306,6 +310,8 @@ bool test_heap_storage() {
         return false;
     table.drop();
 
-    return true;
+    return true;*/
+
+
 }
->>>>>>> 669ce577c43e991cb652ce6bba9769a8b430a512
+
