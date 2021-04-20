@@ -1,7 +1,10 @@
 # 5300-Dolphin
 ![dolphin](/assets/dolphin.gif)
 <br>
+
 Sprint 1: Hailey Dice and Nathan Nishi
+## Handoff Information for Sprint 1
+We believe we have provided all of the necessary code. All methods are commented with relevant information and documented. We implemented them to the best of our ability, however, due to time constraints, the code still has a few errors when attempting to compile. Our best attempt was made at clearing as many errors as possible. Contact Nathan or Hailey if there are any questions. Best of luck on Sprint 2.
 
 ## Sprint 1: Milestone 1 Skeleton
 Found under the tag Milestone1, this milestone "assembles all of our tools and build the core of our SQL shell". Input SQL statements will parse, and be the corresponding parse tree will be printed. 
@@ -44,5 +47,4 @@ In the directory where ```https://github.com/klundeen/5300-Dolphin.git``` is clo
 $ git checkout tags/Milestone2
 $ make
 ```
-## Handoff Information for Sprint 1
-We believe we have provided all of the necessary code. All methods are commented with relevant information and documented. We implemented them to the best of our ability, however, due to time constraints, the code still has a few errors when attempting to compile. Our best attempt was made at clearing as many errors as possible. Contact Nathan or Hailey if there are any questions. Best of luck on Sprint 2.
+
