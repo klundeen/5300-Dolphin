@@ -5,8 +5,6 @@
 using namespace std;
 typedef u_int16_t u16
 
-<<<<<<< HEAD
-bool test_heap_storage() {return true;}
 
 /**
  * ---------------------------Slotted Page/DbBlock---------------------------
