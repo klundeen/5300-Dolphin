@@ -173,9 +173,42 @@ QueryResult *SQLExec::create(const CreateStatement *statement) {
     return new QueryResult(std::string("Created")+ table_name);
 }
 
-// DROP ...
+/**
+ * Drop the given table.
+ * @param statement: table to drop
+ * @return QueryResult: result of the drop query
+ */
 QueryResult *SQLExec::drop(const DropStatement *statement) {
-    return new QueryResult("not implemented"); // FIXME
+	Identifier table_name = statement->name;
+    if (statement->type != DropStatement::kTable) {
+        return new QueryResult("Unrecognized DROP type");
+    }
+
+    if(table_name == Tables::TABLE_NAME || table_name == Columns::TABLE_NAME) {
+    	throw SQLExecError("Cannot drop a schema table!");
+    }
+    // get the table
+    DbRelation& table = SQLExec::tables->get_table(table_name);
+
+    ValueDict where;
+    where["table_name"] = Value(table_name);
+    
+    //remove from _column schema
+    DbRelation &columns = SQLExec::tables->get_table(Columns::TABLE_NAME);
+    Handles *c_handles = columns.select(&where);
+
+    for(auto const &handle: *c_handles) {
+    	columns.del(handle);
+    }
+	delete c_handles;
+
+	//remove table
+	table.drop();
+
+	//remove from _table schema
+	SQLExec::tables->del(*SQLExec::tables->select(&where)->begin());
+
+	return new QueryResult("Drpped" + table_name);
 }
 
 
@@ -203,7 +236,42 @@ QueryResult *SQLExec::show_tables() {
     return new QueryResult(""); // FIXME
 }
 
+/**
+ * Show all current columns.
+ * @param statement: columns to show
+ * @return QueryResult: result of the show columns query
+ */
 QueryResult *SQLExec::show_columns(const ShowStatement *statement) {
-    return new QueryResult("not implemented"); // FIXME
-}
+	// SHOW COLUMNS FROM <table>
 
+    Identifier table_name = statement->tableName;
+
+    ValueDict where;
+    where["table_name"] = Value(table_name);
+
+    DbRelation &table = SQLExec::tables->get_table(table_name);
+    DbRelation &columns = SQLExec::tables->get_table(Columns::TABLE_NAME);
+    Handles *c_handles = columns.select(&where);
+
+    ColumnNames *column_names = new ColumnNames();
+    column_names->push_back("table_name");
+    column_names->push_back("column_name");
+    column_names->push_back("data_type");
+
+    ColumnAttributes *column_attributes = new ColumnAttributes();
+    column_attributes->push_back(ColumnAttribute(ColumnAttribute::TEXT));
+
+    ValueDicts *rows = new ValueDicts;
+
+    for (auto const &handle: *c_handles) {
+        ValueDict *aRow = columns.project(handle, column_names);
+        rows->push_back(aRow);
+    }
+    delete c_handles;
+
+    string ret("successfully returned ");
+    ret += to_string(rows->size());
+    ret += " rows";
+
+    return new QueryResult(column_names, column_attributes, rows, ret);
+}
