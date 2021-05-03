@@ -254,7 +254,7 @@ QueryResult *SQLExec::show_tables() {
 
     //create handles for tables
     Handles *handles = SQLExec::tables->select();
-    u_long n = handles->size() - 3;
+
 
     ValueDicts *rows = new ValueDicts;
 
@@ -271,6 +271,7 @@ QueryResult *SQLExec::show_tables() {
         }
 
     }
+    u_long n = handles->size()-2;
 
     delete handles;
     return new QueryResult(column_names, column_attributes, rows, "successfully returned " + to_string(n) + " rows");
