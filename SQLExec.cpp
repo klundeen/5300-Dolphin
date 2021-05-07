@@ -11,6 +11,7 @@ using namespace hsql;
 
 // define static data
 Tables *SQLExec::tables = nullptr;
+Indices *SQLExec::indices = nullptr;
 
 // make query result be printable
 ostream &operator<<(ostream &out, const QueryResult &qres) {
@@ -188,10 +189,63 @@ QueryResult *SQLExec::create_table(const CreateStatement *statement) {
     return new QueryResult(std::string("Created ") + table_name);
 }
 
-
+/**
+ * Creates the index based on the statement
+ * @param statement : CreateStatement
+ * @return QueryResult
+ */
 QueryResult *SQLExec::create_index(const CreateStatement *statement) {
-    return new QueryResult("create index not implemented");  // FIXME
+
+    Identifier table_name = statement->tableName;
+    ColumnNames column_names;
+    Identifier index_name = statement->indexName;
+    Identifier index_type;
+    bool is_unique;
+
+    Identifier column_name;
+    ColumnAttribute columnAttribute;
+    for (ColumnDefinition *col: *statement->columns) {
+        column_definition(col, column_name, columnAttribute);
+        column_names.push_back(column_name);
+    }
+
+    std::string s1=statement->indexType;
+    std::string s2="HASH";
+    int x = s1.compare(s2);
+    if(x==0){            //either BTREE OR HASH
+        index_type = statement->indexType;
+        is_unique= false;
+    }else{
+        index_type = "BTREE";
+        is_unique= true; //TRUE if BTREE for now
+    }
+
+
+
+    //Execute the statement
+
+    ValueDict *row;
+    row->at("table_name")=table_name;
+    row->at("index_name")=index_name;
+    row->at("seq_in_index")=0;
+    row->at("index_type")=index_type;
+    row->at("is_unique")=is_unique;
+
+
+    for (uint i = 0; i < column_names.size(); i++) {
+        int seq_in_index = row->at("seq_in_index").n;
+        row->at("seq_in_index") = seq_in_index+1;
+        row->at("column_name") = column_names[i];
+        SQLExec::indices->insert(row);
+
+    }
+
+    DbIndex &index=SQLExec::indices->get_index(table_name,index_name);
+    index.create(); //create the index
+
+    return new QueryResult(std::string("created index ") + index_name);
 }
+
 
 // DROP ...
 QueryResult *SQLExec::drop(const DropStatement *statement) {
@@ -213,6 +267,7 @@ QueryResult *SQLExec::drop(const DropStatement *statement) {
  */
 QueryResult *SQLExec::drop_table(const DropStatement *statement) {
     Identifier table_name = statement->name;
+
     if (statement->type != DropStatement::kTable) {
         return new QueryResult("Unrecognized DROP type");
     }
@@ -221,8 +276,19 @@ QueryResult *SQLExec::drop_table(const DropStatement *statement) {
         throw SQLExecError("Cannot drop a schema table!");
     }
 
+    // remove indices
     ValueDict where;
     where["table_name"] = Value(table_name);
+    IndexNames index_names=SQLExec::indices->get_index_names(table_name);
+
+    for(Identifier index_name:index_names){
+        DbIndex &index=SQLExec::indices->get_index(table_name,index_name);
+        index.drop();
+    }
+    Handles *i_handles = SQLExec::indices->select(&where);
+    SQLExec::indices->del(*i_handles->begin());
+    delete i_handles;
+
 
     // get the table
     DbRelation &table = SQLExec::tables->get_table(table_name);
