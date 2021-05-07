@@ -194,7 +194,7 @@ protected:
 class ColumnAttribute {
 public:
     enum DataType {
-        INT, TEXT
+        INT, TEXT , BOOLEAN
     };
 
     ColumnAttribute() : data_type(INT) {}
