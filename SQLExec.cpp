@@ -197,52 +197,61 @@ QueryResult *SQLExec::create_table(const CreateStatement *statement) {
 QueryResult *SQLExec::create_index(const CreateStatement *statement) {
 
     Identifier table_name = statement->tableName;
-    ColumnNames column_names;
     Identifier index_name = statement->indexName;
     Identifier index_type;
     bool is_unique;
-
+    std::cout<<"create_index1...."<<std::endl;
     Identifier column_name;
-    ColumnAttribute columnAttribute;
-    for (ColumnDefinition *col: *statement->columns) {
-        column_definition(col, column_name, columnAttribute);
-        column_names.push_back(column_name);
-    }
+    ColumnNames column_names;
 
-    std::string s1=statement->indexType;
-    std::string s2="HASH";
-    int x = s1.compare(s2);
-    if(x==0){            //either BTREE OR HASH
+    try{
         index_type = statement->indexType;
-        is_unique= false;
-    }else{
-        index_type = "BTREE";
-        is_unique= true; //TRUE if BTREE for now
+        is_unique = false;
+    }catch(exception &e){
+        index_type="BTREE"; //either BTREE OR HASH
+        is_unique=true;
     }
 
-
+    std::cout<<table_name<<std::endl;
+    std::cout<<index_name<<std::endl;
+    std::cout<<index_type<<std::endl;
+    std::cout<<is_unique<<std::endl;
 
     //Execute the statement
+    ValueDict row;
+    row["table_name"]=table_name;
+    row["index_name"]=index_name;
+    row["seq_in_index"]=0;
+    row["index_type"]=index_type;
+    row["is_unique"]=is_unique;
 
-    ValueDict *row;
-    row->at("table_name")=table_name;
-    row->at("index_name")=index_name;
-    row->at("seq_in_index")=0;
-    row->at("index_type")=index_type;
-    row->at("is_unique")=is_unique;
-
-
-    for (uint i = 0; i < column_names.size(); i++) {
-        int seq_in_index = row->at("seq_in_index").n;
-        row->at("seq_in_index") = seq_in_index+1;
-        row->at("column_name") = column_names[i];
-        SQLExec::indices->insert(row);
-
+    for (auto const &col_name: *statement->indexColumns){
+        column_names.push_back(col_name);
     }
 
+
+    std::cout<<"create_index3.4 ...."<<std::endl;
+    for (auto const col_name:column_names) {
+        std::cout<<"a"<<std::endl;
+        row["column_name"] = col_name;
+        std::cout<<"b"<<std::endl;
+        int seq_in_index = row["seq_in_index"].n;
+        std::cout<<"c"<<std::endl;
+        row["seq_in_index"] = seq_in_index+1;
+        std::cout<<"d"<<std::endl;
+        Handle i_handle = SQLExec::indices->insert(&row);
+        
+
+    }
+    std::cout<<"create_index4...."<<std::endl;
+
     DbIndex &index=SQLExec::indices->get_index(table_name,index_name);
+
     index.create(); //create the index
 
+
+
+    std::cout<<"create_index5...."<<std::endl;
     return new QueryResult(std::string("created index ") + index_name);
 }
 
