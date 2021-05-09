@@ -118,8 +118,6 @@ QueryResult *SQLExec::create(const CreateStatement *statement) {
  * @return QueryResult
  */
 QueryResult *SQLExec::create_table(const CreateStatement *statement) {
-
-
     Identifier table_name = statement->tableName;
     ColumnNames column_names;
     ColumnAttributes column_attributes;
@@ -132,14 +130,12 @@ QueryResult *SQLExec::create_table(const CreateStatement *statement) {
         column_definition(col, column_name, columnAttribute);
         column_names.push_back(column_name);
         column_attributes.push_back(columnAttribute);
-
     }
 
     //update _tables schema
     ValueDict row;
     row["table_name"] = table_name;
     Handle t_handle = SQLExec::tables->insert(&row);
-
 
     try {
         //update _columns schema
@@ -149,42 +145,34 @@ QueryResult *SQLExec::create_table(const CreateStatement *statement) {
             for (uint i = 0; i < column_names.size(); i++) {
                 row["column_name"] = column_names[i];
                 row["data_type"] = Value(
-                        column_attributes[i].get_data_type() == ColumnAttribute::INT ? "INT" : "TEXT");
+                column_attributes[i].get_data_type() == ColumnAttribute::INT ? "INT" : "TEXT");
                 c_handles.push_back(columns.insert(&row));  // Insert into _columns
             }
 
             //create the relation
             DbRelation &table = SQLExec::tables->get_table(table_name);
-            if(statement->ifNotExists){
+            if (statement->ifNotExists) {
                 table.create_if_not_exists();
-            }else{
+            } else {
                 table.create();
             }
-
-        }catch (exception &e) {
+        } catch (exception &e) {
             //attempt to undo the insertions into _columns
             try {
                 for (auto const &handle:c_handles) {
                     columns.del(handle);
                 }
-
             } catch (...) {}
                 throw;
-
-
         }
-
 
     } catch (exception &e) {
         //attempt to undo the insertion into _tables
         try {
             SQLExec::tables->del(t_handle);
-        }catch (...) {}
+        } catch (...) {}
             throw;
-
-
     }
-
 
     return new QueryResult(std::string("Created ") + table_name);
 }
@@ -200,59 +188,42 @@ QueryResult *SQLExec::create_index(const CreateStatement *statement) {
     Identifier index_name = statement->indexName;
     Identifier index_type;
     bool is_unique;
-    std::cout<<"create_index1...."<<std::endl;
+
     Identifier column_name;
     ColumnNames column_names;
 
-    try{
+    try {
         index_type = statement->indexType;
         is_unique = false;
-    }catch(exception &e){
-        index_type="BTREE"; //either BTREE OR HASH
-        is_unique=true;
+    } catch (exception &e) {
+        index_type = "BTREE"; //either BTREE OR HASH
+        is_unique = true;
     }
-
-    std::cout<<table_name<<std::endl;
-    std::cout<<index_name<<std::endl;
-    std::cout<<index_type<<std::endl;
-    std::cout<<is_unique<<std::endl;
 
     //Execute the statement
     ValueDict row;
-    row["table_name"]=table_name;
-    row["index_name"]=index_name;
-    row["seq_in_index"]=0;
-    row["index_type"]=index_type;
-    row["is_unique"]=is_unique;
+    row["table_name"] = table_name;
+    row["index_name"] = index_name;
+    row["seq_in_index"] = 0;
+    row["index_type"] = index_type;
+    row["is_unique"] = is_unique;
 
     for (auto const &col_name: *statement->indexColumns){
         column_names.push_back(col_name);
     }
 
-
-    std::cout<<"create_index3.4 ...."<<std::endl;
     for (auto const col_name:column_names) {
-        std::cout<<"a"<<std::endl;
         row["column_name"] = col_name;
-        std::cout<<"b"<<std::endl;
         int seq_in_index = row["seq_in_index"].n;
-        std::cout<<"c"<<std::endl;
-        row["seq_in_index"] = seq_in_index+1;
-        std::cout<<"d"<<std::endl;
+        row["seq_in_index"] = seq_in_index + 1;
         Handle i_handle = SQLExec::indices->insert(&row);
-        
-
     }
-    std::cout<<"create_index4...."<<std::endl;
 
-    DbIndex &index=SQLExec::indices->get_index(table_name,index_name);
+    DbIndex &index = SQLExec::indices->get_index(table_name,index_name);
 
     index.create(); //create the index
 
-
-
-    std::cout<<"create_index5...."<<std::endl;
-    return new QueryResult(std::string("created index ") + index_name);
+    return new QueryResult(std::string("Created index ") + index_name);
 }
 
 
@@ -322,11 +293,35 @@ QueryResult *SQLExec::drop_table(const DropStatement *statement) {
     return new QueryResult("Dropped " + table_name);
 }
 
+/**
+ * Drop the given index.
+ * @param statement: index to drop
+ * @return QueryResult: result of the drop index query
+ */
 QueryResult *SQLExec::drop_index(const DropStatement *statement) {
-    return new QueryResult("drop index not implemented");  // FIXME
+    if (statement->type != DropStatement::kIndex) {
+        return new QueryResult("Unrecognized DROP type");
+    }
+
+    Identifier table_name = statement->name;
+    Identifier index_name = statement->indexName;
+
+    DbIndex& index = SQLExec::indices->get_index(table_name, index_name);
+
+    ValueDict where;
+    where["table_name"] = Value(table_name);
+    where["index_name"] = Value(index_name);
+
+    Handles *i_handles = SQLExec::indices->select(&where);
+
+	for (auto const &handle: *i_handles) {
+        SQLExec::indices->del(*i_handles->begin());
+    }
+    delete i_handles;
+    index.drop();
+
+    return new QueryResult("Dropped index " + index_name);
 }
-
-
 
 /**
  * Helper method to call required Show routine based on statement type
@@ -346,14 +341,49 @@ QueryResult *SQLExec::show(const ShowStatement *statement) {
             return show_index(statement);
         default:
             throw SQLExecError("Unrecognized show type!");
-
     }
-
 }
 
+/**
+ * Show index of the given table.
+ * @param statement: columns to show
+ * @return QueryResult: result of the show columns query
+ */
 
 QueryResult *SQLExec::show_index(const ShowStatement *statement) {
-    return new QueryResult("not implemented"); // FIXME
+    Identifier table_name = statement->tableName;
+    ColumnNames *column_names = new ColumnNames;
+    ColumnAttributes *column_attributes = new ColumnAttributes;
+
+    ValueDict where;
+    where["table_name"] = Value(table_name);
+    
+    column_names->push_back("table_name");
+    column_names->push_back("index_name");
+    column_names->push_back("seq_in_index");
+    column_names->push_back("column_name");
+    column_names->push_back("index_type");
+    column_names->push_back("is_unique");
+    column_attributes->push_back(ColumnAttribute(ColumnAttribute::TEXT));
+
+    Handles *handles = SQLExec::indices->select();
+
+    ValueDicts *rows = new ValueDicts;
+
+    for (const auto &handle:*handles) {
+        ValueDict *row = SQLExec::indices->project(handle, column_names);
+        Identifier table_name = row->at("index_name").s;
+
+        if (table_name != Tables::TABLE_NAME && table_name != Columns::TABLE_NAME) {
+            rows->push_back(row);
+        } else {
+            delete row;
+        }
+    }
+    u_long n = handles->size()-2;
+
+    delete handles;
+    return new QueryResult(column_names, column_attributes, rows, "successfully returned " + to_string(n) + " rows");
 }
 
 /**
