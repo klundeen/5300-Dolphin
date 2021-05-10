@@ -390,9 +390,11 @@ public:
 // Return a table for given table_name.
 DbIndex &Indices::get_index(Identifier table_name, Identifier index_name) {
     // if they are asking about an index we've once constructed, then just return that one
+    std::cout << "aaaaaa........................" << std::endl;
     std::pair<Identifier, Identifier> cache_key(table_name, index_name);
     if (Indices::index_cache.find(cache_key) != Indices::index_cache.end())
         return *Indices::index_cache[cache_key];
+    std::cout << "bbbbbbbb........................" << std::endl;
 
     // otherwise assume it is a DummyIndex (for now)
     ColumnNames column_names;

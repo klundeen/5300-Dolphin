@@ -66,6 +66,9 @@ QueryResult *SQLExec::execute(const SQLStatement *statement) {
     if (SQLExec::tables == nullptr)
         SQLExec::tables = new Tables();
 
+    if (SQLExec::indices == nullptr)
+        SQLExec::indices = new Indices();
+
     try {
         switch (statement->type()) {
             case kStmtCreate:
@@ -304,35 +307,25 @@ QueryResult *SQLExec::drop_table(const DropStatement *statement) {
  * @return QueryResult: result of the drop index query
  */
 QueryResult *SQLExec::drop_index(const DropStatement *statement) {
-
-    std::cout << "1....."<<std::endl;
-
     Identifier table_name = statement->name;
     Identifier index_name = statement->indexName;
 
+    std::cout << "Table name is........" << statement->name <<std::endl;
+
+    std::cout << "index name is........" << statement->indexName <<std::endl;
+
     std::cout << "2....."<<std::endl;
+    
     ValueDict where;
     where["table_name"] = Value(table_name);
     where["index_name"] = Value(index_name);
-    std::cout << "2.5....."<<std::endl;
+    
+    std::cout << "3....."<<std::endl;
+
     DbIndex &index = SQLExec::indices->get_index(table_name, index_name);
     std::cout << "3....."<<std::endl;
-    index.drop();
-    /*
-    ValueDict where;
-    where["table_name"] = Value(table_name);
-    where["index_name"] = Value(index_name);
-    std::cout << "4....."<<std::endl;
-     */
     std::cout << "4....."<<std::endl;
 
-    Handles *i_handles = SQLExec::indices->select(&where);
-    std::cout << "5....."<<std::endl;
-    SQLExec::indices->del(*i_handles->begin());
-    std::cout << "6....."<<std::endl;
-    delete i_handles;
-    std::cout << "7....."<<std::endl;
-    /*
     Handles *handles = SQLExec::indices->select(&where);
     std::cout << "5....."<<std::endl;
     for (auto const &handle: *handles) {
@@ -347,7 +340,7 @@ QueryResult *SQLExec::drop_index(const DropStatement *statement) {
 
     index.drop();
     std::cout << "10....."<<std::endl;
-    */
+
     return new QueryResult("Dropped index " + index_name);
 }
 
@@ -380,15 +373,10 @@ QueryResult *SQLExec::show(const ShowStatement *statement) {
 
 QueryResult *SQLExec::show_index(const ShowStatement *statement) {
     Identifier table_name = statement->tableName;
-
-
     ColumnAttributes *column_attributes = new ColumnAttributes;
 
     ValueDict where;
     where["table_name"] = Value(table_name);
-
-    DbRelation &columns = SQLExec::tables->get_table(table_name);
-    Handles *i_handles = columns.select(&where);
 
     ColumnNames *column_names = new ColumnNames;
     column_names->push_back("table_name");
@@ -399,22 +387,35 @@ QueryResult *SQLExec::show_index(const ShowStatement *statement) {
     column_names->push_back("is_unique");
     column_attributes->push_back(ColumnAttribute(ColumnAttribute::TEXT));
 
+    //create handles for tables
+    Handles *handles = SQLExec::indices->select();
+
 
     ValueDicts *rows = new ValueDicts;
 
-    for (auto const &handle: *i_handles) {
-        ValueDict *row = columns.project(handle, column_names);
-        rows->push_back(row);
+    //get the table names
+    for (const auto &handle:*handles) {
+        ValueDict *row = SQLExec::indices->project(handle, column_names);
+        Identifier table_name = row->at("index_name").s;
+
+        //check if the table not present in Table's or Column's TABLE_NAME
+        if (table_name != Tables::TABLE_NAME && table_name != Columns::TABLE_NAME) {
+            rows->push_back(row);
+        } else {
+            delete row;
+        }
     }
-    delete i_handles;
+    u_long n = rows->size();
 
     string ret("successfully returned ");
     ret += to_string(rows->size());
     ret += " rows";
 
+    delete handles;
 
+    return new QueryResult(column_names, column_attributes, rows, "successfully returned " + to_string(n) + " rows");
 
-    return new QueryResult(column_names, column_attributes, rows, ret);
+    //return new QueryResult(column_names, column_attributes, rows, ret);
 }
 
 /**
