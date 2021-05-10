@@ -71,9 +71,6 @@ QueryResult *SQLExec::execute(const SQLStatement *statement) {
     if (SQLExec::indices == nullptr)
         SQLExec::indices = new Indices();
 
-    if (SQLExec::indices == nullptr)
-        SQLExec::indices = new Indices();
-
     try {
         switch (statement->type()) {
             case kStmtCreate:
@@ -376,7 +373,7 @@ QueryResult *SQLExec::show_index(const ShowStatement *statement) {
     column_attributes->push_back(ColumnAttribute(ColumnAttribute::TEXT));
 
     //create handles for tables
-    Handles *handles = SQLExec::indices->select();
+    Handles *handles = SQLExec::indices->select(&where);
 
     ValueDicts *rows = new ValueDicts;
 
@@ -392,7 +389,7 @@ QueryResult *SQLExec::show_index(const ShowStatement *statement) {
             delete row;
         }
     }
-    u_long n = rows->size();
+
 
 
     string ret("successfully returned ");
@@ -401,7 +398,7 @@ QueryResult *SQLExec::show_index(const ShowStatement *statement) {
 
     delete handles;
 
-    return new QueryResult(column_names, column_attributes, rows, "successfully returned " + to_string(n) + " rows");
+    return new QueryResult(column_names, column_attributes, rows, ret);
 
 
 }
@@ -431,7 +428,7 @@ QueryResult *SQLExec::show_tables() {
         Identifier table_name = row->at("table_name").s;
 
         //check if the table not present in Table's or Column's TABLE_NAME
-        if (table_name != Tables::TABLE_NAME && table_name != Columns::TABLE_NAME) {
+        if (table_name != Tables::TABLE_NAME && table_name != Columns::TABLE_NAME && table_name != Indices::TABLE_NAME) {
             rows->push_back(row);
         } else {
             delete row;
@@ -442,6 +439,8 @@ QueryResult *SQLExec::show_tables() {
 
     delete handles;
     return new QueryResult(column_names, column_attributes, rows, "successfully returned " + to_string(n) + " rows");
+
+
 }
 
 /**
