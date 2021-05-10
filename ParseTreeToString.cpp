@@ -212,6 +212,15 @@ string ParseTreeToString::insert(const InsertStatement *stmt) {
 
 string ParseTreeToString::create(const CreateStatement *stmt) {
     string ret("CREATE ");
+    if (stmt->type == CreateStatement::kIndex) {
+        ret += "INDEX ";
+        ret += stmt->indexName;
+        ret += " ON ";
+        ret += stmt->tableName;
+        ret += " USING BTREE ";
+        return ret;
+    }
+
     if (stmt->type != CreateStatement::kTable)
         return ret + "...";
     ret += "TABLE ";
@@ -257,7 +266,8 @@ string ParseTreeToString::show(const ShowStatement *stmt) {
             ret += string("COLUMNS FROM ") + stmt->tableName;
             break;
         case ShowStatement::kIndex:
-            ret += "INDEX";
+            ret += "INDEX FROM ";
+            ret += stmt->tableName;
             break;
         default:
             ret += "?what?";
