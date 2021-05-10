@@ -235,7 +235,7 @@ QueryResult *SQLExec::drop(const DropStatement *statement) {
         case DropStatement::kIndex:
             return drop_index(statement);
         default:
-            return new QueryResult("Only DROP TABLE and CREATE INDEX are implemented");
+            return new QueryResult("Only DROP TABLE and DROP INDEX are implemented");
     }
 }
 
@@ -299,26 +299,36 @@ QueryResult *SQLExec::drop_table(const DropStatement *statement) {
  * @return QueryResult: result of the drop index query
  */
 QueryResult *SQLExec::drop_index(const DropStatement *statement) {
-    if (statement->type != DropStatement::kIndex) {
-        return new QueryResult("Unrecognized DROP type");
-    }
+    // if (statement->type != DropStatement::kIndex) {
+    //     return new QueryResult("Unrecognized DROP type");
+    // }
+    cout << "1.....";
 
     Identifier table_name = statement->name;
     Identifier index_name = statement->name;
 
-    DbIndex &index = SQLExec::indices->get_index(table_name, index_name);
+    cout << "2.....";
 
+    DbIndex &index = SQLExec::indices->get_index(table_name, index_name);
+    cout << "3.....";
     ValueDict where;
     where["table_name"] = Value(table_name);
     where["index_name"] = Value(index_name);
-
+    cout << "4.....";
     Handles *handles = SQLExec::indices->select(&where);
+    cout << "5.....";
     for (auto const &handle: *handles) {
+    	cout << "6.....";
     	SQLExec::indices->del(handle);
+    	cout << "7.....";
     }
+
+    cout << "8.....";
     delete handles;
+    cout << "9.....";
 
     index.drop();
+    cout << "10.....";
 
     return new QueryResult("Dropped index " + index_name);
 }

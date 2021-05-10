@@ -234,6 +234,9 @@ string ParseTreeToString::drop(const DropStatement *stmt) {
         case DropStatement::kTable:
             ret += "TABLE ";
             break;
+        case DropStatement::kIndex:
+            ret += "INDEX ";
+            break;
         default:
             ret += "? ";
     }
