@@ -304,20 +304,20 @@ QueryResult *SQLExec::drop_index(const DropStatement *statement) {
     }
 
     Identifier table_name = statement->name;
-    Identifier index_name = statement->indexName;
+    Identifier index_name = statement->name;
 
-    DbIndex& index = SQLExec::indices->get_index(table_name, index_name);
+    DbIndex &index = SQLExec::indices->get_index(table_name, index_name);
 
     ValueDict where;
     where["table_name"] = Value(table_name);
     where["index_name"] = Value(index_name);
 
-    Handles *i_handles = SQLExec::indices->select(&where);
-
-	for (auto const &handle: *i_handles) {
-        SQLExec::indices->del(*i_handles->begin());
+    Handles *handles = SQLExec::indices->select(&where);
+    for (auto const &handle: *handles) {
+    	SQLExec::indices->del(handle);
     }
-    delete i_handles;
+    delete handles;
+
     index.drop();
 
     return new QueryResult("Dropped index " + index_name);
@@ -370,7 +370,7 @@ QueryResult *SQLExec::show_index(const ShowStatement *statement) {
 
     ValueDicts *rows = new ValueDicts;
 
-    for (const auto &handle:*handles) {
+    for (const auto &handle: *handles) {
         ValueDict *row = SQLExec::indices->project(handle, column_names);
         Identifier table_name = row->at("index_name").s;
 
@@ -380,7 +380,7 @@ QueryResult *SQLExec::show_index(const ShowStatement *statement) {
             delete row;
         }
     }
-    u_long n = handles->size()-2;
+    u_long n = handles->size() - 2;
 
     delete handles;
     return new QueryResult(column_names, column_attributes, rows, "successfully returned " + to_string(n) + " rows");
