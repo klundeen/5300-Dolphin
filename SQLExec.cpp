@@ -32,6 +32,9 @@ ostream &operator<<(ostream &out, const QueryResult &qres) {
                     case ColumnAttribute::TEXT:
                         out << "\"" << value.s << "\"";
                         break;
+                    case ColumnAttribute::BOOLEAN:
+                        out << (value.n == 0 ? "false" : "true");
+                        break;
                     default:
                         out << "???";
                 }
@@ -192,7 +195,6 @@ QueryResult *SQLExec::create_index(const CreateStatement *statement) {
     Identifier table_name = statement->tableName;
     Identifier index_name = statement->indexName;
     Identifier index_type;
-    bool is_unique;
 
     Identifier column_name;
     ColumnNames column_names;
@@ -203,11 +205,6 @@ QueryResult *SQLExec::create_index(const CreateStatement *statement) {
         index_type = "BTREE"; //either BTREE OR HASH
     }
 
-    try {
-        is_unique = bool(statement->unique);
-    } catch (exception &e) {
-        is_unique = false;
-    }
 
     //Execute the statement
     ValueDict row;
@@ -215,12 +212,12 @@ QueryResult *SQLExec::create_index(const CreateStatement *statement) {
     row["index_name"] = index_name;
     row["seq_in_index"] = 0;
     row["index_type"] = index_type;
-    row["is_unique"] = is_unique;
+    row["is_unique"] = Value(std::string(statement->indexType) == "BTREE"); // assume HASH is non-unique --
 
     for (auto const &col_name: *statement->indexColumns) {
         column_names.push_back(col_name);
     }
-    std::cout << "create statement" << std::endl;
+
     Handles i_handles;
     for (auto const col_name:column_names) {
         row["column_name"] = col_name;
@@ -242,7 +239,6 @@ QueryResult *SQLExec::drop(const DropStatement *statement) {
         case DropStatement::kTable:
             return drop_table(statement);
         case DropStatement::kIndex:
-            std::cout << "drop kIndex switchcase" << std::endl;
             return drop_index(statement);
         default:
             return new QueryResult("Only DROP TABLE and DROP INDEX are implemented");
