@@ -108,6 +108,7 @@ string ParseTreeToString::expression(const Expr *expr) {
         case kExprLiteralInt:
             ret += to_string(expr->ival);
             break;
+
         case kExprFunctionRef:
             ret += string(expr->name) + "?" + expr->expr->name;
             break;
