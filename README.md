@@ -4,6 +4,7 @@
 
 Sprint 2: Shrividya Ballapadavu and Priyanka Patil
 
+Handoff video link: https://youtu.be/y7eQDc03lFw
 
 ## Sprint 2: Milestone 3: Schema Storage 
 
