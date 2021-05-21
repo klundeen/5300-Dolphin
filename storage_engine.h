@@ -194,7 +194,7 @@ protected:
 class ColumnAttribute {
 public:
     enum DataType {
-        INT, TEXT , BOOLEAN
+        INT, TEXT, BOOLEAN
     };
 
     ColumnAttribute() : data_type(INT) {}
@@ -225,7 +225,7 @@ public:
 
     Value(int32_t n) : n(n) { data_type = ColumnAttribute::INT; }
 
-    Value(std::string s) : n(0), s(s) { data_type = ColumnAttribute::TEXT; }
+    Value(std::string s) : s(s) { data_type = ColumnAttribute::TEXT; }
 
     bool operator==(const Value &other) const;
 
@@ -345,6 +345,15 @@ public:
     virtual Handles *select(const ValueDict *where) = 0;
 
     /**
+     * Conceptually, execute: SELECT <handle> FROM <table_name> WHERE <where>
+     * This version does a restricted selection based on current_selection.
+     * @param current_selection  restrict selection to be from these rows
+     * @param where              where-clause predicates
+     * @returns                  a pointer to a list of handles for qualifying rows (freed by caller)
+     */
+    virtual Handles *select(Handles *current_selection, const ValueDict *where) = 0;
+
+    /**
      * Return a sequence of all values for handle (SELECT *).
      * @param handle  row to get values from
      * @returns       dictionary of values from row (keyed by all column names)
@@ -368,6 +377,38 @@ public:
      * @return              dictionary of values from row (keyed by column_names)
      */
     virtual ValueDict *project(Handle handle, const ValueDict *column_names);
+
+    // additional versions of project for multiple rows
+    virtual ValueDicts *project(Handles *handles);
+
+    virtual ValueDicts *project(Handles *handles, const ColumnNames *column_names);
+
+    virtual ValueDicts *project(Handles *handles, const ValueDict *column_names);
+
+    /**
+     * Accessor for column_names.
+     * @returns column_names   list of column names for this relation, in order
+     */
+    virtual const ColumnNames &get_column_names() const {
+        return column_names;
+    }
+
+    /**
+     * Accessor for column_attributes.
+     * @returns column_attributes dictionary of column attributes keyed by column names
+     */
+    virtual const ColumnAttributes get_column_attributes() const {
+        return column_attributes;
+    }
+
+    /**
+     * A version of accessor for column_attributes that further
+     * restricts returned attributes to a subset of columns.
+     * @param select_column_names  list of column names to get attributes for
+     * @returns                    column_attributes dictionary of column attributes keyed
+     *                             by column names
+     */
+    virtual ColumnAttributes *get_column_attributes(const ColumnNames &select_column_names) const;
 
 protected:
     Identifier table_name;
@@ -448,6 +489,5 @@ protected:
     ColumnNames key_columns;
     bool unique;
 };
-
 
 

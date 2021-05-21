@@ -1,7 +1,13 @@
 {
+   Berkeley DB leak from get
+   Memcheck:Leak
+   ...
+   fun:__db_get_pp
+   ...
+}
+{
    Berkeley DB leak from open
    Memcheck:Leak
-   match-leak-kinds: definite
    fun:malloc
    fun:__os_malloc
    fun:__os_strdup
