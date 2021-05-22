@@ -4,6 +4,8 @@
  * @see "Seattle University, CPSC5300, Spring 2021"
  */
 #include "SQLExec.h"
+#include "EvalPlan.h"
+#include "ParseTreeToString.h"
 
 using namespace std;
 using namespace hsql;
@@ -89,7 +91,48 @@ QueryResult *SQLExec::execute(const SQLStatement *statement) {
 }
 
 QueryResult *SQLExec::insert(const InsertStatement *statement) {
-    return new QueryResult("INSERT statement not yet implemented");  // FIXME
+    Identifier table_name = statement->tableName; 
+    DbRelation& table = SQLExec::tables->get_table(table_name); 
+    ColumnNames column_names;
+    ColumnAttributes column_attributes;
+    ValueDict row;
+    unsigned int index = 0;
+
+    if(statement->columns != nullptr){
+        for (auto const column : *statement->columns){
+            column_names.push_back(column);
+        }
+    }
+    else {
+        for (auto const column: table.get_column_names()){
+            column_names.push_back(column);
+        }
+    }
+
+    for (auto const& column : *statement->values){
+        switch(column->type){
+            case kExprLiteralString:
+                row[column_names[index]] = Value(column->name);
+                index++;
+                break;
+            case kExprLiteralInt:
+                row[column_names[index]] = Value(column->ival);
+                index++;
+                break;
+            default:
+                throw SQLExecError("Insert type is not implemented");
+        }
+    }
+
+    Handle insert_handle = table.insert(&row); 
+    IndexNames index_names = SQLExec::indices->get_index_names(table_name);
+    for(Identifier name : index_names){
+        DbIndex& index = SQLExec::indices->get_index(table_name, name);
+        index.insert(insert_handle);
+    }
+ 
+    return new QueryResult("Successfully inserted 1 row into " 
+    + table_name + " and " + to_string(index_names.size()) + " indices");
 }
 
 QueryResult *SQLExec::del(const DeleteStatement *statement) {
