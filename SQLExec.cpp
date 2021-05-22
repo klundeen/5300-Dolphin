@@ -135,8 +135,82 @@ QueryResult *SQLExec::insert(const InsertStatement *statement) {
     + table_name + " and " + to_string(index_names.size()) + " indices");
 }
 
+ValueDict* SQLExec::get_where_conjunction(const hsql::Expr *expr, const ColumnNames *col_names) {
+  if(expr->type != kExprOperator)
+    throw DbRelationError("Operator is not supported");
+  ValueDict* rows = new ValueDict;
+  switch(expr->opType) {
+    case Expr::AND: {
+      ValueDict* sub = get_where_conjunction(expr->expr, col_names);
+      if (sub != nullptr){
+        rows->insert(sub->begin(), sub->end());
+      }
+      sub = get_where_conjunction(expr->expr2, col_names);
+      rows->insert(sub->begin(), sub->end());
+      break;
+    }
+    case Expr::SIMPLE_OP: {
+      if(expr->opChar != '=')
+        throw DbRelationError("only equality predicates currently supported");
+      Identifier col = expr->expr->name;
+      if(find(col_names->begin(), col_names->end(), col) == col_names->end()){
+        throw DbRelationError("unknown column '" + col + "'");
+      }
+      if(expr->expr2->type == kExprLiteralString)
+        rows->insert(pair<Identifier, Value>(col, Value(expr->expr2->name)));
+      else if(expr->expr2->type == kExprLiteralInt)
+        rows->insert(pair<Identifier, Value>(col, Value(expr->expr2->ival)));
+      else
+        throw DbRelationError("Type is not supported");
+      break;
+    }
+    default:
+      throw DbRelationError("only support AND conjunctions");
+  }
+  return rows;
+}
+
 QueryResult *SQLExec::del(const DeleteStatement *statement) {
-    return new QueryResult("DELETE statement not yet implemented");  // FIXME
+    Identifier table_name = statement->tableName;
+    DbRelation& table = SQLExec::tables->get_table(table_name);
+    ColumnNames column_names;
+
+    for (auto const column: table.get_column_names()){
+        column_names.push_back(column);
+    }
+
+    EvalPlan *plan = new EvalPlan(table); 
+    ValueDict* where = new ValueDict;
+    if (statement->expr != NULL){
+        try{
+            where = get_where_conjunction(statement->expr, &column_names);
+        }
+        catch (exception &e){
+            throw;
+        }
+        plan = new EvalPlan(where, plan);
+    }
+    
+    EvalPlan *opt = plan->optimize();
+    EvalPipeline pipeline = opt->pipeline();
+    Handles *handles = pipeline.second;
+    
+    auto index_names = SQLExec::indices->get_index_names(table_name);
+    unsigned int handle_size = handles->size();
+    unsigned int index_size = index_names.size();
+    for( auto const &handle: *handles){
+        for (unsigned int i = 0; i < index_names.size(); i++){
+            DbIndex &index = SQLExec::indices->get_index(table_name, index_names[i]);
+            index.del(handle);
+        }
+    }
+
+    for (auto const& handle: *handles){
+        table.del(handle);
+    }
+    delete where;
+    return new QueryResult("successfully deleted " + to_string(handle_size) 
+    + " rows from " + table_name + " and " + to_string(index_size) + " indices");
 }
 
 QueryResult *SQLExec::select(const SelectStatement *statement) {
