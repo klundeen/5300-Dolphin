@@ -3,6 +3,12 @@
  * @author Kevin Lundeen
  * @see "Seattle University, CPSC5300, Spring 2021"
  */
+
+/**
+ *Invierno Sprint
+ *File modifed by: Tuan Phan, Yinying Liang
+ */
+
 #include "SQLExec.h"
 #include "EvalPlan.h"
 #include "ParseTreeToString.h"
@@ -213,8 +219,58 @@ QueryResult *SQLExec::del(const DeleteStatement *statement) {
     + " rows from " + table_name + " and " + to_string(index_size) + " indices");
 }
 
+/**
+ *
+ *
+ */
 QueryResult *SQLExec::select(const SelectStatement *statement) {
-    return new QueryResult("SELECT statement not yet implemented");  // FIXME
+
+  Identifier table_name = statement->fromTable->name;
+  DbRelation& table = SQLExec::tables->get_table(table_name);
+
+  ColumnNames table_columns;
+  for(auto const col : table.get_column_names())
+    table_columns.push_back(col);
+  
+  //start the plan with a TableScan
+  EvalPlan *plan = new EvalPlan(table);
+  
+  //enclose that in a select if we have a where clause
+  if(statement->whereClause != nullptr)
+    plan = new EvalPlan(get_where_conjunction(statement->whereClause, &table_columns), plan);
+
+  //Get columns that need to be projected if any
+  ColumnNames* column_names = new ColumnNames;
+  ColumnAttributes * column_attributes = new ColumnAttributes;
+
+  //Wrap the whole thing in either ProjectAll or Project
+  //select statement: selectList -> vector
+  //check if is a ProjectAll or project certain columns
+  if(statement->selectList->front()->type == kExprStar)
+    {
+      //ProjectAll
+      //Get all columns from the table
+      *column_names = table.get_column_names();
+      *column_attributes = table.get_column_attributes();
+      plan = new EvalPlan(EvalPlan::ProjectAll, plan);
+    }
+  else{
+    //Project
+    //Get columns that are in the selectList
+    for(auto const& column : *statement->selectList)
+      {
+        column_names->push_back(column->name);
+      }
+    *column_attributes = *table.get_column_attributes(*column_names);
+    plan = new EvalPlan(column_names, plan);
+  }
+ 
+  //optimize the plan and evaluate the optimized plan
+  EvalPlan *optimized = plan->optimize();
+  ValueDicts *rows = optimized->evaluate();
+  
+  return new QueryResult(column_names, column_attributes, rows,
+                         "successfuly returned" + to_string(rows->size()) + " rows"); 
 }
 
 void
