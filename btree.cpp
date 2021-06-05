@@ -75,13 +75,8 @@ Handles *BTreeIndex::lookup(ValueDict *key_dict) const {
     open();
 
   KeyValue *tkey = this->tkey(key_dict);
-  Handles *leaf = this->_lookup(root, stat->get_height(), tkey);
-
-  Handles *handle = leaf->find_eq(tkey); // find_eq throws if not found
-
-  //return handle;
-    
-  return nullptr;
+ 
+  return  _lookup(root, stat->get_height(), tkey);
 }
 
 Handles *_lookup(BtreeNode *node, uint height, const KeyValue* key) const{
