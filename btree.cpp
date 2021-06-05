@@ -84,6 +84,23 @@ Handles *BTreeIndex::lookup(ValueDict *key_dict) const {
   return nullptr;
 }
 
+Handles *_lookup(BtreeNode *node, uint height, const KeyValue* key) const{
+
+  Handles * handle = new Hadles;
+  //base case
+  if(height == 1){
+    auto *leaf = dynamic_cast<BTreeLeaf *>(node);
+    handle->push_back(leaf->find_eq(key));
+    return handle;
+  }
+  else{
+    auto *interiorNode = dynamic_cast<BTreeLeaf *>(node);
+
+    return _lookup(interiorNode->find(key,height), height-1, key);
+  }
+}
+
+
 Handles *BTreeIndex::range(ValueDict *min_key, ValueDict *max_key) const {
     throw DbRelationError("Don't know how to do a range query on Btree index yet");
     // FIXME
