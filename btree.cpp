@@ -87,8 +87,12 @@ Handles *BTreeIndex::_lookup(BTreeNode *node, uint height, const KeyValue* key) 
   Handles * handle = new Handles;
   //base case
   if(height == 1){
-    auto *leaf = dynamic_cast<BTreeLeaf *>(node);
-    handle->push_back(leaf->find_eq(key));
+    try {
+      auto *leaf = dynamic_cast<BTreeLeaf *>(node);
+      handle->push_back(leaf->find_eq(key));
+    } catch (...){
+
+    }
     return handle;
   }
   else{
@@ -183,6 +187,7 @@ bool test_btree() {
     row1["b"] = Value(99);
     row2["a"] = Value(88);
     row2["b"] = Value(101);
+ 
     table.insert(&row1);
     table.insert(&row2);
     //Make smaller to prevent memory leak
@@ -220,13 +225,13 @@ bool test_btree() {
     delete result;
 
     //this test causes the error
-    //lookup["a"] = 6;
-    //handles = index.lookup(&lookup);
-    //if (handles->size() != 0) {
-    //  std::cout << "third lookup failed" << std::endl;
-    //  return false;
-    //}
-    //delete handles;
+    lookup["a"] = 6;
+    handles = index.lookup(&lookup);
+    if (handles->size() != 0) {
+      std::cout << "third lookup failed" << std::endl;
+      return false;
+    }
+    delete handles;
 
     for (uint j = 0; j < 10; j++)
         for (int i = 0; i < 1000; i++) {
