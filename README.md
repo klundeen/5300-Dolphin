@@ -76,6 +76,6 @@ Modified file: btree.cpp
 
 Checkout tab Milestone6: git checkout tags/Milestone6
 
-Imfplemented methods: lookup, _lookup (recursive lookup)
+Implemented methods: lookup, _lookup (recursive lookup)
 
 Milestone 6 program compiles and works expectedly
