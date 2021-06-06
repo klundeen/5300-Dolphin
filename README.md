@@ -65,7 +65,7 @@ To exit the program: type 'quit'
 ## Milestone 5: Insert, Delete, Select, Simple Queries
 Modified file: SQLExec.cpp
 
-Checkout tag Milestone5: git checkout tags/Milestone4
+Checkout tag Milestone5: git checkout tags/Milestone5
 
 Implemented methods: Insert, delete, select All and select based on predicates.
 
