@@ -49,3 +49,33 @@ $ ./sql5300 ~/cpsc5300/data
 ```
 </br>
 
+# Sprint Invierno
+Updated by Tuan Phan, Yinying Liang
+
+To clone the repository: git clone https://github.com/klundeen/5300-Dolphin.git 
+
+To make the program: type 'make'
+
+To clean the make files: type 'make clean'
+
+To run the program: ./sql5300 ~/cpsc5300/data (second arg is the path where your database env locates)
+
+To exit the program: type 'quit'
+
+## Milestone 5: Insert, Delete, Select, Simple Queries
+Modified file: SQLExec.cpp
+
+Checkout tag Milestone5: git checkout tags/Milestone4
+
+Implemented methods: Insert, delete, select All and select based on predicates.
+
+Milestone 5 program compiles and works expectedly
+
+## Milestone 6: BTree Index
+Modified file: btree.cpp
+
+Checkout tab Milestone6: git checkout tags/Milestone6
+
+Imfplemented methods: lookup, _lookup (recursive lookup)
+
+Milestone 6 program compiles and works expectedly
