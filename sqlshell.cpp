@@ -1,17 +1,114 @@
 // Include necessary headers
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "SQLParser.h"
 #include "db_cxx.h"
 
 // Utility functions and classes
 class SQLParserHelper {
 public:
-    static std::string parseSQLStatement(const std::string& statement) {
-        // Implementation
-        return "";
+    static std::string unparse(const hsql::SQLStatement* stmt) {
+        switch (stmt->type()) {
+            case hsql::kStmtCreate:
+                return unparseCreateTable(static_cast<const hsql::CreateStatement*>(stmt));
+            case hsql::kStmtSelect:
+                return unparseSelect(static_cast<const hsql::SelectStatement*>(stmt));
+            default:
+                return "Unsupported SQL statement";
+        }
+    }
+
+private:
+    static std::string unparseCreateTable(const hsql::CreateStatement* stmt) {
+        std::string sql = "CREATE TABLE " + std::string(stmt->tableName);
+        sql += " (";
+        for (auto* col : *stmt->columns) {
+            sql += columnDefinitionToString(col) + ", ";
+        }
+        sql.pop_back(); // Remove last comma
+        sql.pop_back(); // Remove last space
+        sql += ")";
+        return sql;
+    }
+
+    static std::string columnDefinitionToString(const hsql::ColumnDefinition* col) {
+        std::string ret(col->name);
+        switch(col->type) {
+            case hsql::ColumnDefinition::DOUBLE:
+                ret += " DOUBLE";
+                break;
+            case hsql::ColumnDefinition::INT:
+                ret += " INT";
+                break;
+            case hsql::ColumnDefinition::TEXT:
+                ret += " TEXT";
+                break;
+            default:
+                ret += " ...";
+                break;
+        }
+        return ret;
+    }
+
+    static std::string unparseSelect(const hsql::SelectStatement* stmt) {
+        std::string sql = "SELECT ";
+    
+        // Handle SELECT fields
+        for (const hsql::Expr* expr : *stmt->selectList) {
+            sql += (expr == stmt->selectList->front() ? "" : ", ") + exprToString(expr);
+        }
+    
+        // Handle FROM clause
+        sql += " FROM " + tableRefToString(stmt->fromTable);
+    
+        return sql;
+    }
+    
+    static std::string exprToString(const hsql::Expr* expr) {
+        if (!expr) return "";
+    
+        // This function should handle different expression types
+        // For simplicity, handle only column names and '*' for now
+        if (expr->type == hsql::kExprStar) return "*";
+        if (expr->type == hsql::kExprColumnRef) return expr->name;
+        
+        // Handle more complex expressions as needed
+        return "<expr>";
+    }
+    
+    static std::string tableRefToString(const hsql::TableRef* table) {
+        if (!table) return "";
+    
+        std::string sql;
+        switch (table->type) {
+            case hsql::kTableName:
+                sql = table->name;
+                if (table->alias) sql += " AS " + std::string(table->alias);
+                break;
+            case hsql::kTableJoin:
+                sql = tableRefToString(table->join->left);
+                sql += " " + joinTypeToString(table->join->type);
+                sql += " " + tableRefToString(table->join->right);
+                if (table->join->condition) {
+                    sql += " ON " + exprToString(table->join->condition);
+                }
+                break;
+            // Handle other types as necessary
+        }
+        return sql;
+    }
+    
+    static std::string joinTypeToString(const hsql::JoinType type) {
+        switch (type) {
+            case hsql::kJoinLeft: return "LEFT JOIN";
+            case hsql::kJoinRight: return "RIGHT JOIN";
+            // Add more cases as necessary
+            default: return "JOIN";
+        }
     }
 };
 
@@ -60,7 +157,6 @@ public:
     }
 
     void run() {
-        // Main loop for shell
         std::cout << QUIT << " to end" << std::endl;
 
         while (true) {
@@ -72,11 +168,19 @@ public:
                 return;
             }
 
-            try {
-                // Parse and execute SQL statement
-            } catch (const std::exception& e) {
-                std::cout << typeid(e).name() << ": " << e.what() << std::endl;
+            hsql::SQLParserResult* result = hsql::SQLParser::parseSQLString(sql);
+            if (result->isValid()) {
+                std::cout << "Parsed successfully!" << std::endl;
+                for (uint i = 0; i < result->size(); ++i) {
+                    std::string statement = SQLParserHelper::unparse(result->getStatement(i));
+                    std::cout << statement << std::endl;
+                }
+            } else {
+                std::cerr << "Invalid SQL query." << std::endl;
+                std::cerr << result->errorMsg() << " (Line: " << result->errorLine() << ", Column: " << result->errorColumn() << ")" << std::endl;
             }
+
+            delete result;
         }
     }
 
