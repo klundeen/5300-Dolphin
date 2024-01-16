@@ -1,4 +1,10 @@
-// Include necessary headers
+/**
+ * program to execute SQL commands
+ * 
+ * By: Jou Ho
+ * For: CPSC 5300, WQ2024
+ */
+
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -56,14 +62,21 @@ private:
 
     static std::string unparseSelect(const hsql::SelectStatement* stmt) {
         std::string sql = "SELECT ";
-    
+        
         // Handle SELECT fields
         for (const hsql::Expr* expr : *stmt->selectList) {
             sql += (expr == stmt->selectList->front() ? "" : ", ") + exprToString(expr);
         }
-    
+        
         // Handle FROM clause
-        sql += " FROM " + tableRefToString(stmt->fromTable);
+        if (stmt->fromTable) {
+            sql += " FROM " + tableRefToString(stmt->fromTable);
+        }
+    
+        // Handle WHERE clause
+        if (stmt->whereClause) {
+            sql += " WHERE " + exprToString(stmt->whereClause);
+        }
     
         return sql;
     }
@@ -71,18 +84,46 @@ private:
     static std::string exprToString(const hsql::Expr* expr) {
         if (!expr) return "";
     
-        // This function should handle different expression types
-        // For simplicity, handle only column names and '*' for now
-        if (expr->type == hsql::kExprStar) return "*";
-        if (expr->type == hsql::kExprColumnRef) return expr->name;
-        
-        // Handle more complex expressions as needed
-        return "<expr>";
+        std::string exprStr;
+        switch (expr->type) {
+            case hsql::kExprStar:
+                exprStr = "*";
+                break;
+            case hsql::kExprColumnRef:
+                if (expr->table) {
+                    exprStr += std::string(expr->table) + ".";
+                }
+                exprStr += std::string(expr->name);
+                break;
+            case hsql::kExprOperator:
+                exprStr = operatorExprToString(expr);
+                break;
+            // Handle other expression types as necessary
+            default:
+                exprStr = "<expr>";
+        }
+        return exprStr;
+    }
+
+    static std::string operatorExprToString(const hsql::Expr* expr) {
+        if (!expr) return "";
+    
+        std::string opStr;
+        if (expr->opType == hsql::Expr::SIMPLE_OP) {
+            opStr = " " + std::string(1, expr->opChar) + " ";
+        } else if (expr->opType == hsql::Expr::AND) {
+            opStr = " AND ";
+        } else if (expr->opType == hsql::Expr::OR) {
+            opStr = " OR ";
+        }
+        // Add more cases for different operators
+    
+        return exprToString(expr->expr) + opStr + exprToString(expr->expr2);
     }
     
     static std::string tableRefToString(const hsql::TableRef* table) {
         if (!table) return "";
-    
+        
         std::string sql;
         switch (table->type) {
             case hsql::kTableName:
@@ -90,11 +131,16 @@ private:
                 if (table->alias) sql += " AS " + std::string(table->alias);
                 break;
             case hsql::kTableJoin:
-                sql = tableRefToString(table->join->left);
+                sql = "(" + tableRefToString(table->join->left);
                 sql += " " + joinTypeToString(table->join->type);
-                sql += " " + tableRefToString(table->join->right);
+                sql += " " + tableRefToString(table->join->right) + ")";
                 if (table->join->condition) {
                     sql += " ON " + exprToString(table->join->condition);
+                }
+                break;
+            case hsql::kTableCrossProduct:
+                for (const hsql::TableRef* tbl : *table->list) {
+                    sql += (tbl == table->list->front() ? "" : ", ") + tableRefToString(tbl);
                 }
                 break;
             // Handle other types as necessary
