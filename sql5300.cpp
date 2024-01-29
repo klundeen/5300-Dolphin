@@ -15,6 +15,8 @@
 #include "db_cxx.h"
 #include "heap_storage.h"
 
+DbEnv *_DB_ENV;
+
 // Utility functions and classes
 class SQLParserHelper {
 public:
@@ -182,6 +184,7 @@ public:
             db.set_error_stream(env.get_error_stream());
             db.open(NULL, DBName.c_str(), NULL, DB_RECNO, DB_CREATE | DB_TRUNCATE, 0644);
             std::cout << "Database " << DBName << " opened successfully." << std::endl;
+            _DB_ENV = &env;
         } catch (DbException& e) {
             std::cerr << "Error in database environment: " << e.what() << std::endl;
             throw; // Rethrow the exception for the caller to handle
