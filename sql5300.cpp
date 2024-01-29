@@ -13,6 +13,7 @@
 #include <string.h>
 #include "SQLParser.h"
 #include "db_cxx.h"
+#include "heap_storage.h"
 
 // Utility functions and classes
 class SQLParserHelper {
@@ -212,6 +213,11 @@ public:
 
             if (sql == QUIT) {
                 return;
+            }
+
+            if (sql == "test") {
+                std::cout << "test_heap_storage: " << (test_heap_storage() ? "ok" : "failed") << std::endl;
+                continue;
             }
 
             hsql::SQLParserResult* result = hsql::SQLParser::parseSQLString(sql);
