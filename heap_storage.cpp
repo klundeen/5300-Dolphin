@@ -89,6 +89,25 @@ void SlottedPage::put_header(RecordID id, u16 size, u16 loc) {
     put_n(4*id + 2, loc);
 }
 
+void SlottedPage::slide(u_int16_t start, u_int16_t end) {
+    // Calculate the amount to slide
+    int slide_amount = end - start;
+    if (slide_amount == 0) return; // No sliding needed
+
+    // Adjust pointers for all records that will be affected by the slide
+    // This is just a placeholder logic.
+
+    // Move the data in the block
+    // memmove(destination, source, number_of_bytes);
+    memmove((char*)this->block.get_data() + start + slide_amount,
+            (char*)this->block.get_data() + start,
+            this->end_free - start); // Adjust this calculation as needed
+
+    // Update end_free to reflect the new position of the end of free space
+    this->end_free += slide_amount; // Adjust this as necessary
+}
+
+
 u16 SlottedPage::get_n(u16 offset) {
     return *reinterpret_cast<u16*>(this->address(offset));
 }
@@ -249,6 +268,33 @@ Handles* HeapTable::select(const ValueDict *where) {
     return handles;
 }
 
+void HeapTable::update(const Handle handle, const ValueDict *new_values) {
+    // Example implementation logic:
+    // 1. Fetch the record using the handle.
+    // 2. Apply the changes from new_values to the record.
+    // 3. Marshal the updated record and write it back to the storage.
+
+    // This is a placeholder.
+}
+
+void HeapTable::del(const Handle handle) {
+    // Example implementation logic:
+    // 1. Locate the record using the handle.
+    // 2. Mark the record as deleted in the storage system.
+
+    // This is a placeholder. 
+}
+
+ValueDict *HeapTable::project(Handle handle, const ColumnNames *column_names) {
+    ValueDict *projected_values = new ValueDict();
+    // Example implementation logic:
+    // 1. Fetch the record using the handle.
+    // 2. Extract and return the values for the specified columns.
+
+    // This is a placeholder.
+    return projected_values;
+}
+
 ValueDict* HeapTable::project(Handle handle) {
     SlottedPage* block = this->file.get(handle.first);
     Dbt* data = block->get(handle.second);
@@ -257,6 +303,16 @@ ValueDict* HeapTable::project(Handle handle) {
     delete block;
     return row;
 }
+
+ValueDict *HeapTable::validate(const ValueDict *row) {
+    // Example implementation logic:
+    // 1. Check if the values in 'row' adhere to the schema and constraints of the table.
+    // 2. Return a possibly modified version of 'row' that conforms to the table's requirements, or throw an exception if invalid.
+
+    // This is a placeholder. 
+    return new ValueDict(*row); // Simply returns a copy for the sake of the example.
+}
+
 
 // return the bits to go into the file
 // caller responsible for freeing the returned Dbt and its enclosed ret->get_data().
@@ -312,6 +368,30 @@ ValueDict* HeapTable::unmarshal(Dbt* data) {
     }
     return row;
 }
+
+Handles *HeapTable::select() {
+    Handles *handles = new Handles();
+    // Logic to iterate over all records and add their handles to the list
+    // This is just a placeholder.
+    return handles;
+}
+
+Handle HeapTable::append(const ValueDict *row) {
+    // Convert row to Dbt data structure
+    Dbt *data = marshal(row);
+    
+    // Get a new block if necessary and add the record
+    BlockID block_id = 0; // Determine the appropriate block ID
+    SlottedPage *block = dynamic_cast<SlottedPage*>(this->file.get_new()); // Or use existing block
+
+    RecordID record_id = block->add(data);
+    this->file.put(block); // Write the block back to the file
+
+    delete data; // Clean up the marshaled data
+
+    return std::make_pair(block_id, record_id);
+}
+
 
 
 // test function -- returns true if all tests pass
