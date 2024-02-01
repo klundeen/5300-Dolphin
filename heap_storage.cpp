@@ -127,7 +127,11 @@ void HeapFile::create() {
     if (!closed) {
         throw std::runtime_error("File is already open");
     }
+    std::cout << "before opening" << std::endl;
+
     this->db_open(DB_CREATE | DB_EXCL);
+    std::cout << "after opening" << std::endl;
+
     this->closed = false;
     // Create an empty block to act as the first block
     SlottedPage* page = this->get_new();
@@ -145,7 +149,7 @@ void HeapFile::open() {
     if (!closed) {
         return; // File is already open
     }
-    this->db_open();
+    this->db_open(DB_CREATE | DB_TRUNCATE);
     this->closed = false;
 }
 
@@ -194,18 +198,32 @@ BlockIDs* HeapFile::block_ids() {
 }
 
 void HeapFile::db_open(uint flags) {
-    if (!this->closed) {
-        return; // Database is already open
-    }
-    this->db.set_flags(DB_RECNUM); // Use record numbers
-    this->db.open(nullptr, this->dbfilename.c_str(), nullptr, DB_RECNO, flags, 0);
-    this->closed = false;
+    try {
+        if (!this->closed) {
+            std::cerr << "Database already open" << std::endl;
+            return; // Database is already open
+        }
 
-    if (flags == DB_CREATE) {
-        this->last = 0;
-    } else {
-        // Retrieve the last block id from the database's metadata
-        // This part may require custom logic to track the last block id effectively
+        // Attempt to open the database
+        // this->db.set_flags(DB_RECNUM); // Specific for DB_RECNO access method
+        std::cout << "name is .... " << this->dbfilename.c_str() << std::endl;
+        this->db.open(NULL, this->dbfilename.c_str(), NULL, DB_RECNO, flags, 0644);
+        // this->db.open(NULL, DBName.c_str(), NULL, DB_RECNO, DB_CREATE | DB_TRUNCATE, 0644);
+        this->closed = false;
+        std::cout << "Database opened successfully" << std::endl;
+
+        if (flags & DB_CREATE) {
+            this->last = 0;
+        } else {
+            // Code to handle retrieving the last block ID, if necessary
+        }
+    } catch (const DbException& e) {
+        std::cerr << "Database open failed: " << e.what() << std::endl;
+        // Handle error (e.g., by re-throwing, logging, or setting a status)
+        throw;
+    } catch (const std::exception& e) {
+        std::cerr << "Standard exception: " << e.what() << std::endl;
+        throw;
     }
 }
 

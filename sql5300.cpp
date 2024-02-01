@@ -11,15 +11,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <cstdio>
 #include "SQLParser.h"
 #include "db_cxx.h"
 #include "heap_storage.h"
 
 DbEnv *_DB_ENV;
-
-using namespace std;
-using namespace hsql;
 
 // Utility functions and classes
 class SQLParserHelper {
@@ -254,60 +250,22 @@ private:
 };
 
 // Main function
-int main(int argc, char* argv[]) {
-    // Open/create the database environment
-    if (argc != 2) {
-        cerr << "Usage: " << argv[0] << " <path to DB directory>" << endl;
+int main(int argc, char** argv) {
+    // Check for sufficient command line arguments
+    if (argc < 3) {
+        std::cerr << "Usage: " << argv[0] << " <path to DB directory> <DB name>" << std::endl;
         return 1;
     }
-    string envHome = argv[1];
-    cout << "(sql5300: running with database environment at " << envHome << ")" << endl;
+
+    std::string dbPath = argv[1];
+    std::string dbName = argv[2];
 
     try {
-        // Initialize the DB environment using the constructor
-        DbEnv env(0U);
-        env.set_message_stream(&cout);
-        env.set_error_stream(&cerr);
-
-        // Open the environment with the specified flags
-        env.open(envHome.c_str(), DB_CREATE | DB_INIT_MPOOL, 0);
-
-        // Assign the global variable to the newly opened environment
-        _DB_ENV = &env;
-
-        // SQL shell loop
-        while (true) {
-            cout << "SQL> ";
-            string query;
-            getline(cin, query);
-            if (query.length() == 0)
-                continue;  // Skip blank lines
-            if (query == "quit")
-                break;  // Exit the loop
-	    if (query == "test") {
-                cout << "test_heap_storage: " << (test_heap_storage() ? "ok" : "failed") << endl;
-                continue;
-            }
-
-            SQLParserResult* result = SQLParser::parseSQLString(query);
-            if (result->isValid()) {
-                cout << "Parsed successfully!" << endl;
-                for (uint i = 0; i < result->size(); ++i) {
-                    const SQLStatement* stmt = result->getStatement(i);
-                    // Utilize your existing SQL execution or parsing logic here
-                    string statement = SQLParserHelper::unparse(stmt);
-                    cout << statement << endl;
-                }
-            } else {
-                cerr << "Invalid SQL query: " << query << endl;
-                cerr << result->errorMsg() << " (Line: " << result->errorLine() << ", Column: " << result->errorColumn() << ")" << endl;
-            }
-
-            delete result;
-        }
-
-    } catch (DbException& e) {
-        cerr << "Database environment could not be opened: " << e.what() << endl;
+        // Pass both the path and the name to SQLShell
+        SQLShell shell(dbPath, dbName);
+        shell.run();
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
         return EXIT_FAILURE;
     }
 
