@@ -164,9 +164,9 @@ private:
 // DBEnvironment class
 class DBEnvironment {
 public:
-    explicit DBEnvironment(const std::string& path, const std::string& dbName)
-        : env(0U), envDir(path), DBName(dbName), db(&env, 0) {
-        // The constructor initializes the environment directory, the DbEnv, and Db objects
+    explicit DBEnvironment(const std::string& path)
+        : env(0U), envDir(path), DBName("example.db"), db(&env, 0) { // Use a hardcoded database name
+        // The constructor initializes the environment directory and the DbEnv objects
     }
 
     void open() {
@@ -178,12 +178,6 @@ public:
         try {
             env.open(envDir.c_str(), DB_CREATE | DB_INIT_MPOOL, 0);
             std::cout << "Database environment opened at " << envDir << std::endl;
-
-            // Open the database within the environment
-            db.set_message_stream(env.get_message_stream());
-            db.set_error_stream(env.get_error_stream());
-            db.open(NULL, DBName.c_str(), NULL, DB_RECNO, DB_CREATE | DB_TRUNCATE, 0644);
-            std::cout << "Database " << DBName << " opened successfully." << std::endl;
             _DB_ENV = &env;
         } catch (DbException& e) {
             std::cerr << "Error in database environment: " << e.what() << std::endl;
@@ -200,8 +194,8 @@ private:
 // SQLShell class
 class SQLShell {
 public:
-    explicit SQLShell(const std::string& dbPath, const std::string& dbName) 
-        : dbEnv(dbPath, dbName) {
+    explicit SQLShell(const std::string& dbPath) 
+        : dbEnv(dbPath) {
         dbEnv.open();
         initialized = true;
     }
@@ -251,18 +245,16 @@ private:
 
 // Main function
 int main(int argc, char** argv) {
-    // Check for sufficient command line arguments
-    if (argc < 3) {
-        std::cerr << "Usage: " << argv[0] << " <path to DB directory> <DB name>" << std::endl;
+    if (argc < 2) {
+        std::cerr << "Usage: " << argv[0] << " <path to DB directory>" << std::endl;
         return 1;
     }
 
     std::string dbPath = argv[1];
-    std::string dbName = argv[2];
 
     try {
-        // Pass both the path and the name to SQLShell
-        SQLShell shell(dbPath, dbName);
+        // Pass only the path to SQLShell
+        SQLShell shell(dbPath);
         shell.run();
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
