@@ -1,6 +1,5 @@
 # Makefile, Kevin Lundeen, Seattle University, CPSC5300, Winter Quarter 2024
 CXX      ?= g++
-CC       := $(CXX) # Ensures that linking is done with c++ libs
 CPPFLAGS  = -I/usr/local/db6/include -I$(INC_DIR) -Wall -Wextra -Wpedantic
 CXXFLAGS  = -DHAVE_CXX_STDHEADERS -D_GNU_SOURCE -D_REENTRANT -O2 -std=c++17
 LDFLAGS  += -L/usr/local/db6/lib
@@ -20,6 +19,7 @@ all: sql5300
 # Rule for linking to create the executable
 # Note that this is the default target since it is the first non-generic one in the Makefile: $ make
 sql5300: $(OBJS)
+	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
 # In addition to the general .cpp to .o rule below, we need to note any header dependencies here
 # idea here is that if any of the included header files changes, we have to recompile
