@@ -16,16 +16,15 @@
  */
 void initialize_schema_tables();
 
-
 class Columns; // forward declare
 
 /**
- * @class Tables - The singleton table that stores the metadata for all other tables.
- * For now, we are not indexing anything, so a query requires sequential scan
- * of the table.
+ * @class Tables - The singleton table that stores the metadata for all other
+ * tables. For now, we are not indexing anything, so a query requires sequential
+ * scan of the table.
  */
 class Tables : public HeapTable {
-public:
+  public:
     /**
      * Name of the tables table ("_tables")
      */
@@ -51,7 +50,8 @@ public:
      * @param column_attributes  returned by reference: list of corresponding
      *                           attributes for column_names
      */
-    virtual void get_columns(Identifier table_name, ColumnNames &column_names, ColumnAttributes &column_attributes);
+    virtual void get_columns(Identifier table_name, ColumnNames &column_names,
+                             ColumnAttributes &column_attributes);
 
     /**
      * Get the correctly instantiated DbRelation for a given table.
@@ -60,7 +60,7 @@ public:
      */
     virtual DbRelation &get_table(Identifier table_name);
 
-protected:
+  protected:
     // hard-coded columns for _tables table
     static ColumnNames &COLUMN_NAMES();
 
@@ -69,17 +69,17 @@ protected:
     // keep a reference to the columns table (for get_columns method)
     static Columns *columns_table;
 
-private:
+  private:
     // keep a cache of all the tables we've instantiated so far
     static std::map<Identifier, DbRelation *> table_cache;
 };
 
-
 /**
- * @class Columns - The singleton table that stores the column metadata for all tables.
+ * @class Columns - The singleton table that stores the column metadata for all
+ * tables.
  */
 class Columns : public HeapTable {
-public:
+  public:
     /**
      * Name of the columns table ("_columns")
      */
@@ -95,11 +95,9 @@ public:
 
     virtual Handle insert(const ValueDict *row);
 
-protected:
+  protected:
     // hard-coded columns for the _columns table
     static ColumnNames &COLUMN_NAMES();
 
     static ColumnAttributes &COLUMN_ATTRIBUTES();
 };
-
-

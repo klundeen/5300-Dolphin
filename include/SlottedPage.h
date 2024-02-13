@@ -1,8 +1,6 @@
 /**
- * @file heap_storage.h - Implementation of storage_engine with a heap file structure.
- * SlottedPage: DbBlock
- * HeapFile: DbFile
- * HeapTable: DbRelation
+ * @file heap_storage.h - Implementation of storage_engine with a heap file
+ * structure. SlottedPage: DbBlock HeapFile: DbFile HeapTable: DbRelation
  *
  * @author Kevin Lundeen
  * @see "Seattle University, CPSC5300, Winter Quarter 2024"
@@ -15,19 +13,18 @@
  * @class SlottedPage - heap file implementation of DbBlock.
  *
  *      Manage a database block that contains several records.
-        Modeled after slotted-page from Database Systems Concepts, 6ed, Figure 10-9.
+        Modeled after slotted-page from Database Systems Concepts, 6ed, Figure
+ 10-9.
 
-        Record id are handed out sequentially starting with 1 as records are added with add().
-        Each record has a header which is a fixed offset from the beginning of the block:
-            Bytes 0x00 - Ox01: number of records
-            Bytes 0x02 - 0x03: offset to end of free space
-            Bytes 0x04 - 0x05: size of record 1
-            Bytes 0x06 - 0x07: offset to record 1
-            etc.
+        Record id are handed out sequentially starting with 1 as records are
+ added with add(). Each record has a header which is a fixed offset from the
+ beginning of the block: Bytes 0x00 - Ox01: number of records Bytes 0x02 - 0x03:
+ offset to end of free space Bytes 0x04 - 0x05: size of record 1 Bytes 0x06 -
+ 0x07: offset to record 1 etc.
  *
  */
 class SlottedPage : public DbBlock {
-public:
+  public:
     SlottedPage(Dbt &block, BlockID block_id, bool is_new = false);
 
     // Big 5 - use the defaults
@@ -43,7 +40,7 @@ public:
 
     virtual RecordIDs *ids(void) const;
 
-protected:
+  protected:
     uint16_t num_records;
     uint16_t end_free;
 
@@ -66,4 +63,3 @@ protected:
 
 bool assertion_failure(std::string message, double x = -1, double y = -1);
 bool test_slotted_page();
-

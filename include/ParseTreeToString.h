@@ -5,19 +5,20 @@
  */
 #pragma once
 
+#include "SQLParser.h"
 #include <string>
 #include <vector>
-#include "SQLParser.h"
 
 /**
  * @class ParseTreeToString - class for unparsing a Hyrise Abstract Syntax Tree
  */
 class ParseTreeToString {
-public:
+  public:
     /**
      * Unparse a Hyrise AST into an SQL statement.
      * @param statement  Hyrise AST pointer
-     * @returns          string of the SQL statement equivalent to what was parsed
+     * @returns          string of the SQL statement equivalent to what was
+     * parsed
      */
     static std::string statement(const hsql::SQLStatement *statement);
 
@@ -26,7 +27,7 @@ public:
      */
     static bool is_reserved_word(std::string word);
 
-private:
+  private:
     // reserved words
     static const std::vector<std::string> reserved_words;
 
@@ -49,5 +50,3 @@ private:
 
     static std::string show(const hsql::ShowStatement *stmt);
 };
-
-

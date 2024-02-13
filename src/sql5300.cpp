@@ -3,13 +3,13 @@
  * @author Kevin Lundeen
  * @see "Seattle University, cpsc4300/5300, Spring 2021"
  */
+#include "ParseTreeToString.h"
+#include "SQLExec.h"
+#include "SQLParser.h"
+#include "db_cxx.h"
 #include <cstdlib>
 #include <iostream>
 #include <string>
-#include "db_cxx.h"
-#include "SQLParser.h"
-#include "ParseTreeToString.h"
-#include "SQLExec.h"
 
 using namespace std;
 using namespace hsql;
@@ -18,7 +18,6 @@ using namespace hsql;
  * we allocate and initialize the _DB_ENV global
  */
 void initialize_environment(char *envHome);
-
 
 /**
  * Main entry point of the sql5300 program
@@ -39,11 +38,12 @@ int main(int argc, char *argv[]) {
         string query;
         getline(cin, query);
         if (query.length() == 0)
-            continue;  // blank line -- just skip
+            continue; // blank line -- just skip
         if (query == "quit")
-            break;  // only way to get out
+            break; // only way to get out
         if (query == "test") {
-            cout << "test_heap_storage: " << (test_heap_storage() ? "ok" : "failed") << endl;
+            cout << "test_heap_storage: "
+                 << (test_heap_storage() ? "ok" : "failed") << endl;
             continue;
         }
 
@@ -73,7 +73,8 @@ int main(int argc, char *argv[]) {
 DbEnv *_DB_ENV;
 
 void initialize_environment(char *envHome) {
-    cout << "(sql5300: running with database environment at " << envHome << ")" << endl;
+    cout << "(sql5300: running with database environment at " << envHome << ")"
+         << endl;
 
     DbEnv *env = new DbEnv(0U);
     env->set_message_stream(&cout);
@@ -87,4 +88,3 @@ void initialize_environment(char *envHome) {
     _DB_ENV = env;
     initialize_schema_tables();
 }
-

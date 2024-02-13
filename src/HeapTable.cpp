@@ -3,8 +3,8 @@
  * @author K Lundeen
  * @see Seattle University, CPSC5300
  */
-#include <cstring>
 #include "HeapTable.h"
+#include <cstring>
 
 using namespace std;
 typedef uint16_t u16;
@@ -15,17 +15,16 @@ typedef uint16_t u16;
  * @param column_names
  * @param column_attributes
  */
-HeapTable::HeapTable(Identifier table_name, ColumnNames column_names, ColumnAttributes column_attributes) : DbRelation(
-        table_name, column_names, column_attributes), file(table_name) {
-}
+HeapTable::HeapTable(Identifier table_name, ColumnNames column_names,
+                     ColumnAttributes column_attributes)
+    : DbRelation(table_name, column_names, column_attributes),
+      file(table_name) {}
 
 /**
  * Execute: CREATE TABLE <table_name> ( <columns> )
  * Is not responsible for metadata storage or validation.
  */
-void HeapTable::create() {
-    file.create();
-}
+void HeapTable::create() { file.create(); }
 
 /**
  * Execute: CREATE TABLE IF NOT EXISTS <table_name> ( <columns> )
@@ -42,23 +41,17 @@ void HeapTable::create_if_not_exists() {
 /**
  * Execute: DROP TABLE <table_name>
  */
-void HeapTable::drop() {
-    file.drop();
-}
+void HeapTable::drop() { file.drop(); }
 
 /**
  * Open existing table. Enables: insert, update, delete, select, project
  */
-void HeapTable::open() {
-    file.open();
-}
+void HeapTable::open() { file.open(); }
 
 /**
  * Closes the table. Disables: insert, update, delete, select, project
  */
-void HeapTable::close() {
-    file.close();
-}
+void HeapTable::close() { file.close(); }
 
 /**
  * Execute: INSERT INTO <table_name> (<row_keys>) VALUES (<row_values>)
@@ -74,9 +67,9 @@ Handle HeapTable::insert(const ValueDict *row) {
 }
 
 /**
- * Conceptually, execute: UPDATE INTO <table_name> SET <new_values> WHERE <handle>
- * where handle is sufficient to identify one specific record (e.g., returned from an insert
- * or select).
+ * Conceptually, execute: UPDATE INTO <table_name> SET <new_values> WHERE
+ * <handle> where handle is sufficient to identify one specific record (e.g.,
+ * returned from an insert or select).
  * @param handle the row to be updated
  * @param new_values a dictionary with column name keys
  */
@@ -86,8 +79,8 @@ void HeapTable::update(const Handle handle, const ValueDict *new_values) {
 
 /**
  * Conceptually, execute: DELETE FROM <table_name> WHERE <handle>
- * where handle is sufficient to identify one specific record (e.g., returned from an insert
- * or select).
+ * where handle is sufficient to identify one specific record (e.g., returned
+ * from an insert or select).
  * @param handle the row to be deleted
  */
 void HeapTable::del(const Handle handle) {
@@ -104,9 +97,7 @@ void HeapTable::del(const Handle handle) {
  * Conceptually, execute: SELECT <handle> FROM <table_name> WHERE 1
  * @return a list of handles for qualifying rows
  */
-Handles *HeapTable::select() {
-    return select(nullptr);
-}
+Handles *HeapTable::select() { return select(nullptr); }
 
 /**
  * The select command
@@ -117,10 +108,10 @@ Handles *HeapTable::select(const ValueDict *where) {
     open();
     Handles *handles = new Handles();
     BlockIDs *block_ids = file.block_ids();
-    for (auto const &block_id: *block_ids) {
+    for (auto const &block_id : *block_ids) {
         SlottedPage *block = file.get(block_id);
         RecordIDs *record_ids = block->ids();
-        for (auto const &record_id: *record_ids) {
+        for (auto const &record_id : *record_ids) {
             Handle handle(block_id, record_id);
             if (selected(handle, where))
                 handles->push_back(Handle(block_id, record_id));
@@ -158,9 +149,10 @@ ValueDict *HeapTable::project(Handle handle, const ColumnNames *column_names) {
     if (column_names->empty())
         return row;
     ValueDict *result = new ValueDict();
-    for (auto const &column_name: *column_names) {
+    for (auto const &column_name : *column_names) {
         if (row->find(column_name) == row->end())
-            throw DbRelationError("table does not have column named '" + column_name + "'");
+            throw DbRelationError("table does not have column named '" +
+                                  column_name + "'");
         (*result)[column_name] = (*row)[column_name];
     }
     delete row;
@@ -175,11 +167,12 @@ ValueDict *HeapTable::project(Handle handle, const ColumnNames *column_names) {
  */
 ValueDict *HeapTable::validate(const ValueDict *row) const {
     ValueDict *full_row = new ValueDict();
-    for (auto const &column_name: this->column_names) {
+    for (auto const &column_name : this->column_names) {
         Value value;
         ValueDict::const_iterator column = row->find(column_name);
         if (column == row->end())
-            throw DbRelationError("don't know how to handle NULLs, defaults, etc. yet");
+            throw DbRelationError(
+                "don't know how to handle NULLs, defaults, etc. yet");
         else
             value = column->second;
         (*full_row)[column_name] = value;
@@ -206,22 +199,25 @@ Handle HeapTable::append(const ValueDict *row) {
     }
     this->file.put(block);
     delete block;
-    delete[] (char *) data->get_data();
+    delete[] (char *)data->get_data();
     delete data;
     return Handle(this->file.get_last_block_id(), record_id);
 }
 
 /**
  * Figure out the bits to go into the file.
- * The caller is responsible for freeing the returned Dbt and its enclosed ret->get_data().
+ * The caller is responsible for freeing the returned Dbt and its enclosed
+ * ret->get_data().
  * @param row data for the tuple
  * @return bits of the record as it should appear on disk
  */
 Dbt *HeapTable::marshal(const ValueDict *row) const {
-    char *bytes = new char[DbBlock::BLOCK_SZ]; // more than we need (we insist that one row fits into DbBlock::BLOCK_SZ)
+    char *bytes =
+        new char[DbBlock::BLOCK_SZ]; // more than we need (we insist that one
+                                     // row fits into DbBlock::BLOCK_SZ)
     uint offset = 0;
     uint col_num = 0;
-    for (auto const &column_name: this->column_names) {
+    for (auto const &column_name : this->column_names) {
         ColumnAttribute ca = this->column_attributes[col_num++];
         ValueDict::const_iterator column = row->find(column_name);
         Value value = column->second;
@@ -229,7 +225,7 @@ Dbt *HeapTable::marshal(const ValueDict *row) const {
         if (ca.get_data_type() == ColumnAttribute::DataType::INT) {
             if (offset + 4 > DbBlock::BLOCK_SZ - 4)
                 throw DbRelationError("row too big to marshal");
-            *(int32_t *) (bytes + offset) = value.n;
+            *(int32_t *)(bytes + offset) = value.n;
             offset += sizeof(int32_t);
         } else if (ca.get_data_type() == ColumnAttribute::DataType::TEXT) {
             u_long size = value.s.length();
@@ -237,9 +233,10 @@ Dbt *HeapTable::marshal(const ValueDict *row) const {
                 throw DbRelationError("text field too long to marshal");
             if (offset + 2 + size > DbBlock::BLOCK_SZ)
                 throw DbRelationError("row too big to marshal");
-            *(u16 *) (bytes + offset) = size;
+            *(u16 *)(bytes + offset) = size;
             offset += sizeof(u16);
-            memcpy(bytes + offset, value.s.c_str(), size); // assume ascii for now
+            memcpy(bytes + offset, value.s.c_str(),
+                   size); // assume ascii for now
             offset += size;
         } else {
             throw DbRelationError("Only know how to marshal INT and TEXT");
@@ -253,29 +250,30 @@ Dbt *HeapTable::marshal(const ValueDict *row) const {
 }
 
 /**
- * Figure out the memory data structures from the given bits gotten from the file.
+ * Figure out the memory data structures from the given bits gotten from the
+ * file.
  * @param data file data for the tuple
  * @return row data for the tuple
  */
 ValueDict *HeapTable::unmarshal(Dbt *data) const {
     ValueDict *row = new ValueDict();
     Value value;
-    char *bytes = (char *) data->get_data();
+    char *bytes = (char *)data->get_data();
     uint offset = 0;
     uint col_num = 0;
-    for (auto const &column_name: this->column_names) {
+    for (auto const &column_name : this->column_names) {
         ColumnAttribute ca = this->column_attributes[col_num++];
         value.data_type = ca.get_data_type();
         if (ca.get_data_type() == ColumnAttribute::DataType::INT) {
-            value.n = *(int32_t *) (bytes + offset);
+            value.n = *(int32_t *)(bytes + offset);
             offset += sizeof(int32_t);
         } else if (ca.get_data_type() == ColumnAttribute::DataType::TEXT) {
-            u16 size = *(u16 *) (bytes + offset);
+            u16 size = *(u16 *)(bytes + offset);
             offset += sizeof(u16);
             char buffer[DbBlock::BLOCK_SZ];
             memcpy(buffer, bytes + offset, size);
             buffer[size] = '\0';
-            value.s = string(buffer);  // assume ascii for now
+            value.s = string(buffer); // assume ascii for now
             offset += size;
         } else {
             throw DbRelationError("Only know how to unmarshal INT and TEXT");
@@ -350,7 +348,8 @@ bool test_heap_storage() {
     HeapTable table1("_test_create_drop_cpp", column_names, column_attributes);
     table1.create();
     cout << "create ok" << endl;
-    table1.drop();  // drop makes the object unusable because of BerkeleyDB restriction -- maybe want to fix this some day
+    table1.drop(); // drop makes the object unusable because of BerkeleyDB
+                   // restriction -- maybe want to fix this some day
     cout << "drop ok" << endl;
 
     HeapTable table("_test_data_cpp", column_names, column_attributes);
@@ -358,7 +357,9 @@ bool test_heap_storage() {
     cout << "create_if_not_exists ok" << endl;
 
     ValueDict row;
-    string b = "Four score and seven years ago our fathers brought forth on this continent, a new nation, conceived in Liberty, and dedicated to the proposition that all men are created equal.";
+    string b = "Four score and seven years ago our fathers brought forth on "
+               "this continent, a new nation, conceived in Liberty, and "
+               "dedicated to the proposition that all men are created equal.";
     test_set_row(row, -1, b);
     table.insert(&row);
     cout << "insert ok" << endl;
@@ -377,7 +378,7 @@ bool test_heap_storage() {
     if (handles->size() != 1001)
         return false;
     int i = -1;
-    for (auto const &handle: *handles) {
+    for (auto const &handle : *handles) {
         if (!test_compare(table, handle, i++, b))
             return false;
     }
@@ -389,7 +390,7 @@ bool test_heap_storage() {
     if (handles->size() != 1000)
         return false;
     i = -1;
-    for (auto const &handle: *handles) {
+    for (auto const &handle : *handles) {
         if (!test_compare(table, handle, i++, b))
             return false;
     }
@@ -398,4 +399,3 @@ bool test_heap_storage() {
     delete handles;
     return true;
 }
-

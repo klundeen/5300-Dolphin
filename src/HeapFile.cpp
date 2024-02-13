@@ -3,9 +3,9 @@
  * @author K Lundeen
  * @see Seattle University, CPSC5300
  */
-#include <cstring>
-#include "db_cxx.h"
 #include "HeapFile.h"
+#include "db_cxx.h"
+#include <cstring>
 
 using namespace std;
 typedef uint16_t u16;
@@ -14,7 +14,8 @@ typedef uint16_t u16;
  * Constructor
  * @param name
  */
-HeapFile::HeapFile(string name) : DbFile(name), dbfilename(""), last(0), closed(true), db(_DB_ENV, 0) {
+HeapFile::HeapFile(string name)
+    : DbFile(name), dbfilename(""), last(0), closed(true), db(_DB_ENV, 0) {
     this->dbfilename = this->name + ".db";
 }
 
@@ -39,9 +40,7 @@ void HeapFile::drop(void) {
 /**
  * Open physical file.
  */
-void HeapFile::open(void) {
-    db_open();
-}
+void HeapFile::open(void) { db_open(); }
 
 /**
  * Close the physical file.
@@ -53,7 +52,8 @@ void HeapFile::close(void) {
 
 /**
  * Allocate a new block for the database file.
- * @return the new empty DbBlock that is managing the records in this block and its block id.
+ * @return the new empty DbBlock that is managing the records in this block and
+ * its block id.
  */
 SlottedPage *HeapFile::get_new(void) {
     char block[DbBlock::BLOCK_SZ];
@@ -63,9 +63,11 @@ SlottedPage *HeapFile::get_new(void) {
     int block_id = ++this->last;
     Dbt key(&block_id, sizeof(block_id));
 
-    // write out an empty block and read it back in so Berkeley DB is managing the memory
+    // write out an empty block and read it back in so Berkeley DB is managing
+    // the memory
     SlottedPage *page = new SlottedPage(data, this->last, true);
-    this->db.put(nullptr, &key, &data, 0); // write it out with initialization done to it
+    this->db.put(nullptr, &key, &data,
+                 0); // write it out with initialization done to it
     delete page;
     this->db.get(nullptr, &key, &data, 0);
     return new SlottedPage(data, this->last);
@@ -123,10 +125,11 @@ uint32_t HeapFile::get_block_count() {
 void HeapFile::db_open(uint flags) {
     if (!this->closed)
         return;
-    this->db.set_re_len(DbBlock::BLOCK_SZ); // record length - will be ignored if file already exists
-    this->db.open(nullptr, this->dbfilename.c_str(), nullptr, DB_RECNO, flags, 0644);
+    this->db.set_re_len(DbBlock::BLOCK_SZ); // record length - will be ignored
+                                            // if file already exists
+    this->db.open(nullptr, this->dbfilename.c_str(), nullptr, DB_RECNO, flags,
+                  0644);
 
     this->last = flags ? 0 : get_block_count();
     this->closed = false;
 }
-

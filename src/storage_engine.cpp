@@ -1,5 +1,6 @@
 /**
- * @file storage_engine.cpp - implementation of some of the abstract classes' methods
+ * @file storage_engine.cpp - implementation of some of the abstract classes'
+ * methods
  * @author Kevin Lundeen
  * @see "Seattle University, CPSC5300, Winter Quarter 2024"
  */
@@ -13,16 +14,13 @@ bool Value::operator==(const Value &other) const {
     return this->s == other.s;
 }
 
-bool Value::operator!=(const Value &other) const {
-    return !(*this == other);
-}
+bool Value::operator!=(const Value &other) const { return !(*this == other); }
 
-// Just pulls out the column names from a ValueDict and passes that to the usual form of project().
+// Just pulls out the column names from a ValueDict and passes that to the usual
+// form of project().
 ValueDict *DbRelation::project(Handle handle, const ValueDict *where) {
     ColumnNames t;
-    for (auto const &column: *where)
+    for (auto const &column : *where)
         t.push_back(column.first);
     return this->project(handle, &t);
 }
-
-

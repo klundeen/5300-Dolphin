@@ -1,23 +1,24 @@
 /**
- * @file HeapTable.h - Implementation of storage_engine with a heap file structure.
- * HeapTable: DbRelation
+ * @file HeapTable.h - Implementation of storage_engine with a heap file
+ * structure. HeapTable: DbRelation
  *
  * @author Kevin Lundeen
  * @see "Seattle University, CPSC5300, Winter Quarter 2024"
  */
 #pragma once
 
-#include "storage_engine.h"
-#include "SlottedPage.h"
 #include "HeapFile.h"
+#include "SlottedPage.h"
+#include "storage_engine.h"
 
 /**
  * @class HeapTable - Heap storage engine (implementation of DbRelation)
  */
 
 class HeapTable : public DbRelation {
-public:
-    HeapTable(Identifier table_name, ColumnNames column_names, ColumnAttributes column_attributes);
+  public:
+    HeapTable(Identifier table_name, ColumnNames column_names,
+              ColumnAttributes column_attributes);
 
     virtual ~HeapTable() {}
 
@@ -55,7 +56,7 @@ public:
 
     using DbRelation::project;
 
-protected:
+  protected:
     HeapFile file;
 
     virtual ValueDict *validate(const ValueDict *row) const;
@@ -70,5 +71,3 @@ protected:
 };
 
 bool test_heap_storage();
-
-
