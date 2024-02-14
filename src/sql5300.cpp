@@ -34,9 +34,12 @@ int main(int argc, char *argv[]) {
 
     // Enter the SQL shell loop
     while (true) {
-        cout << "SQL> ";
+        cout << "SQL> " << std::flush;
         string query;
         getline(cin, query);
+        // If we ^d break the loop
+        if (std::cin.eof())
+            break;
         if (query.length() == 0)
             continue; // blank line -- just skip
         if (query == "quit")
@@ -50,8 +53,12 @@ int main(int argc, char *argv[]) {
         // parse and execute
         SQLParserResult *parse = SQLParser::parseSQLString(query);
         if (!parse->isValid()) {
-            cout << "invalid SQL: " << query << endl;
-            cout << parse->errorMsg() << endl;
+            std::cerr << parse->errorMsg() << '\n';
+            std::cerr << query << '\n';
+            for (int i = 0; i < parse->errorColumn() - 1; i++) {
+                std::cerr << '.';
+            }
+            std::cerr << "^ Here\n";
         } else {
             for (uint i = 0; i < parse->size(); ++i) {
                 const SQLStatement *statement = parse->getStatement(i);
