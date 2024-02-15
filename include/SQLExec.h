@@ -71,12 +71,21 @@ class SQLExec {
      */
     static QueryResult *execute(const hsql::SQLStatement *statement);
 
+    /**
+     * Close the _tables table and start over.
+     */
+    static void close();
+
   protected:
     // the one place in the system that holds the _tables table
     static Tables *tables;
 
     // recursive decent into the AST
+    static QueryResult *create_table(const hsql::CreateStatement *statement);
+
     static QueryResult *create(const hsql::CreateStatement *statement);
+
+    static QueryResult *drop_table(const std::string table_name);
 
     static QueryResult *drop(const hsql::DropStatement *statement);
 

@@ -372,6 +372,22 @@ class DbRelation {
      */
     virtual ValueDict *project(Handle handle, const ValueDict *column_names);
 
+    /**
+     * Accessor for column_names.
+     * @returns column_names   list of column names for this relation, in order
+     */
+    virtual const ColumnNames &get_column_names() const {
+        return column_names;
+    }
+
+    /**
+     * Accessor for column_attributes.
+     * @returns column_attributes dictionary of column attributes keyed by column names
+     */
+    virtual const ColumnAttributes get_column_attributes() const {
+        return column_attributes;
+    }
+
   protected:
     Identifier table_name;
     ColumnNames column_names;

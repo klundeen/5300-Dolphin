@@ -35,6 +35,11 @@ class Tables : public HeapTable {
 
     virtual ~Tables() {}
 
+    /**
+     * Clears the table cache and closes all tables.
+     */
+    static void clear_cache();
+
     // HeapTable overrides
     virtual void create();
 
@@ -50,7 +55,7 @@ class Tables : public HeapTable {
      * @param column_attributes  returned by reference: list of corresponding
      *                           attributes for column_names
      */
-    virtual void get_columns(Identifier table_name, ColumnNames &column_names,
+    static void get_columns(Identifier table_name, ColumnNames &column_names,
                              ColumnAttributes &column_attributes);
 
     /**
@@ -58,7 +63,7 @@ class Tables : public HeapTable {
      * @param table_name  table to get
      * @returns           instantiated DbRelation of the correct type
      */
-    virtual DbRelation &get_table(Identifier table_name);
+    static DbRelation &get_table(Identifier table_name);
 
   protected:
     // hard-coded columns for _tables table
@@ -68,6 +73,8 @@ class Tables : public HeapTable {
 
     // keep a reference to the columns table (for get_columns method)
     static Columns *columns_table;
+
+    static void create_columns_table();
 
   private:
     // keep a cache of all the tables we've instantiated so far

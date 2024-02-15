@@ -5,6 +5,7 @@
  */
 #include "schema_tables.h"
 #include "ParseTreeToString.h"
+#include "storage_engine.h"
 
 void initialize_schema_tables() {
     Tables tables;
@@ -65,9 +66,23 @@ ColumnAttributes &Tables::COLUMN_ATTRIBUTES() {
 // ctor - we have a fixed table structure of just one column: table_name
 Tables::Tables() : HeapTable(TABLE_NAME, COLUMN_NAMES(), COLUMN_ATTRIBUTES()) {
     Tables::table_cache[TABLE_NAME] = this;
-    if (Tables::columns_table == nullptr)
-        columns_table = new Columns();
-    Tables::table_cache[columns_table->TABLE_NAME] = columns_table;
+    create_columns_table();
+}
+
+// Close all cached tables and clear the cache
+void Tables::clear_cache() {
+    DbRelation *table_tmp;
+    for (auto const &table : Tables::table_cache) {
+        if (table.first == TABLE_NAME) {
+            table_tmp = table.second;
+            continue; // don't close ourself
+        }
+        table.second->close();
+        delete table.second;
+    }
+    Tables::table_cache.clear();
+    Tables::table_cache[TABLE_NAME] = table_tmp;
+    columns_table = nullptr;
 }
 
 // Create the file and also, manually add schema tables.
@@ -111,6 +126,7 @@ void Tables::del(Handle handle) {
 // Return a list of column names and column attributes for given table.
 void Tables::get_columns(Identifier table_name, ColumnNames &column_names,
                          ColumnAttributes &column_attributes) {
+    create_columns_table();
     // SELECT * FROM _columns WHERE table_name = <table_name>
     ValueDict where;
     where["table_name"] = table_name;
@@ -150,6 +166,12 @@ DbRelation &Tables::get_table(Identifier table_name) {
         new HeapTable(table_name, column_names, column_attributes);
     Tables::table_cache[table_name] = table;
     return *table;
+}
+
+void Tables::create_columns_table() {
+    if (columns_table == nullptr)
+        columns_table = new Columns();
+    Tables::table_cache[columns_table->TABLE_NAME] = columns_table;
 }
 
 /*

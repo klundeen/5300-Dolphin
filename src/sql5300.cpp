@@ -74,6 +74,7 @@ int main(int argc, char *argv[]) {
         }
         delete parse;
     }
+    SQLExec::close();
     return EXIT_SUCCESS;
 }
 
