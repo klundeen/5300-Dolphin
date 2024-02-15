@@ -14,24 +14,24 @@ Tables *SQLExec::tables = nullptr;
 // make query result be printable
 ostream &operator<<(ostream &out, const QueryResult &qres) {
     if (qres.column_names != nullptr) {
-        for (auto const &column_name : *qres.column_names)
+        for (auto const &column_name: *qres.column_names)
             out << column_name << " ";
         out << endl << "+";
         for (unsigned int i = 0; i < qres.column_names->size(); i++)
             out << "----------+";
         out << endl;
-        for (auto const &row : *qres.rows) {
-            for (auto const &column_name : *qres.column_names) {
+        for (auto const &row: *qres.rows) {
+            for (auto const &column_name: *qres.column_names) {
                 Value value = row->at(column_name);
                 switch (value.data_type) {
-                case ColumnAttribute::INT:
-                    out << value.n;
-                    break;
-                case ColumnAttribute::TEXT:
-                    out << "\"" << value.s << "\"";
-                    break;
-                default:
-                    out << "???";
+                    case ColumnAttribute::INT:
+                        out << value.n;
+                        break;
+                    case ColumnAttribute::TEXT:
+                        out << "\"" << value.s << "\"";
+                        break;
+                    default:
+                        out << "???";
                 }
                 out << " ";
             }
@@ -46,23 +46,25 @@ QueryResult::~QueryResult() {
     // FIXME
 }
 
+
 QueryResult *SQLExec::execute(const SQLStatement *statement) {
-    // initialize _tables table, if not yet present
+    
     if (SQLExec::tables == nullptr) {
         SQLExec::tables = new Tables();
         SQLExec::tables->open();
     }
 
+
     try {
         switch (statement->type()) {
-        case kStmtCreate:
-            return create((const CreateStatement *)statement);
-        case kStmtDrop:
-            return drop((const DropStatement *)statement);
-        case kStmtShow:
-            return show((const ShowStatement *)statement);
-        default:
-            return new QueryResult("not implemented");
+            case kStmtCreate:
+                return create((const CreateStatement *) statement);
+            case kStmtDrop:
+                return drop((const DropStatement *) statement);
+            case kStmtShow:
+                return show((const ShowStatement *) statement);
+            default:
+                return new QueryResult("not implemented");
         }
     } catch (DbRelationError &e) {
         throw SQLExecError(string("DbRelationError: ") + e.what());
@@ -148,6 +150,7 @@ QueryResult *SQLExec::create_table(const CreateStatement *statement) {
     return new QueryResult("created " + std::string(statement->tableName));
 }
 
+
 QueryResult *SQLExec::create(const CreateStatement *statement) {
     switch (statement->type) {
     case CreateStatement::kTable:
@@ -189,7 +192,7 @@ QueryResult *SQLExec::drop_table(const std::string table_name) {
     return new QueryResult("dropped " + table_name);
 }
 
-// DROP ...
+
 QueryResult *SQLExec::drop(const DropStatement *statement) {
     switch (statement->type) {
         case DropStatement::kTable:
@@ -200,13 +203,79 @@ QueryResult *SQLExec::drop(const DropStatement *statement) {
 }
 
 QueryResult *SQLExec::show(const ShowStatement *statement) {
-    return new QueryResult("not implemented"); // FIXME
+    if (statement->type == ShowStatement::kTables) 
+    {
+        return show_tables();
+
+    } 
+    else if (statement->type == ShowStatement::kColumns) 
+    {
+        return show_columns(statement);
+    } 
+    else 
+    {
+        throw std::runtime_error("not implemented");
+    }
 }
 
-QueryResult *SQLExec::show_tables() {
-    return new QueryResult("not implemented"); // FIXME
+QueryResult *SQLExec::show_tables() {    
+
+    ColumnNames *cn = new ColumnNames;
+    ColumnAttributes *ca = new ColumnAttributes();
+    ValueDicts *rows = new ValueDicts();
+    Handles *handles = SQLExec::tables->select(); 
+    std::string message;
+
+    for (auto const &handle: *handles)
+    {
+        ValueDict *row = SQLExec::tables->project(handle, cn);
+        Identifier table_name = row->at("table_name").s;
+        Identifier table_table_name = Tables::TABLE_NAME;
+        Identifier columns_table_name = Columns::TABLE_NAME;
+
+        if (table_name != table_table_name && table_name != columns_table_name)
+        {
+            rows->push_back(row);
+        }
+
+    }
+    tables->get_columns(Tables::TABLE_NAME, *cn, *ca);
+    message = "successfully returned " + std::to_string(rows->size()) + " rows";
+    return new QueryResult(cn, ca, rows, message);
+
 }
+
 
 QueryResult *SQLExec::show_columns(const ShowStatement *statement) {
-    return new QueryResult("not implemented"); // FIXME
+
+    ColumnNames *cn = new ColumnNames(); 
+    ColumnAttributes *ca = new ColumnAttributes();
+    ValueDicts *rows = new ValueDicts(); 
+    std::string message;
+
+    cn->push_back("table_name");
+    cn->push_back("column_name");
+    cn->push_back("data_type");
+
+    ColumnAttribute column_attr(ColumnAttribute::DataType::TEXT);
+    ca->push_back(column_attr);
+
+    ValueDict new_row;
+    new_row["table_name"] = Value(statement->tableName);
+
+    Identifier tab_name = Columns::TABLE_NAME;
+    DbRelation& new_table = SQLExec::tables->get_table(tab_name);
+    Handles *handles = new_table.select(&new_row);
+
+    for (auto const &handle: *handles)
+    {
+        ValueDict *row = new_table.project(handle, cn);
+        rows->push_back(row);
+    }
+
+    message = "successfully returned " + std::to_string(rows->size()) + " rows";
+    return new QueryResult(cn, ca, rows, message);
 }
+
+
+
