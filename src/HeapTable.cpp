@@ -241,10 +241,11 @@ Dbt *HeapTable::marshal(const ValueDict *row) const {
         } else if (ca.get_data_type() == ColumnAttribute::DataType::BOOLEAN) {
             if (offset + 1 > DbBlock::BLOCK_SZ - 1)
                 throw DbRelationError("row too big to marshal");
-            *(uint8_t *) (bytes + offset) = (uint8_t) value.n;
+            *(uint8_t *)(bytes + offset) = (uint8_t)value.n;
             offset += sizeof(uint8_t);
         } else {
-            throw DbRelationError("Only know how to marshal INT, TEXT, and BOOLEAN");
+            throw DbRelationError(
+                "Only know how to marshal INT, TEXT, and BOOLEAN");
         }
     }
     char *right_size_bytes = new char[offset];
@@ -280,8 +281,12 @@ ValueDict *HeapTable::unmarshal(Dbt *data) const {
             buffer[size] = '\0';
             value.s = string(buffer); // assume ascii for now
             offset += size;
+        } else if (ca.get_data_type() == ColumnAttribute::DataType::BOOLEAN) {
+            value.n = *(uint8_t *)(bytes + offset);
+            offset += sizeof(uint8_t);
         } else {
-            throw DbRelationError("Only know how to unmarshal INT and TEXT");
+            throw DbRelationError(
+                "Only know how to unmarshal INT, TEXT, and BOOLEAN");
         }
         (*row)[column_name] = value;
     }
@@ -312,7 +317,7 @@ bool HeapTable::selected(Handle handle, const ValueDict *where) {
 void test_set_row(ValueDict &row, int a, string b) {
     row["a"] = Value(a);
     row["b"] = Value(b);
-    row["c"] = Value(a % 2 == 0);  // true for even, false for od
+    row["c"] = Value(a % 2 == 0); // true for even, false for od
 }
 
 /**
@@ -362,7 +367,6 @@ bool test_heap_storage() {
     column_attributes.push_back(ca);
     ca.set_data_type(ColumnAttribute::BOOLEAN);
     column_attributes.push_back(ca);
-
 
     HeapTable table1("_test_create_drop_cpp", column_names, column_attributes);
     table1.create();
