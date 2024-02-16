@@ -77,8 +77,9 @@ class SQLExec {
     static void close();
 
   protected:
-    // the one place in the system that holds the _tables table
+    // the one place in the system that holds the _tables and _indices tables
     static Tables *tables;
+    static Indices *indices;
 
     // recursive decent into the AST
     static QueryResult *create_table(const hsql::CreateStatement *statement);
@@ -94,6 +95,10 @@ class SQLExec {
     static QueryResult *show_tables();
 
     static QueryResult *show_columns(const hsql::ShowStatement *statement);
+
+    static QueryResult *drop_index(const hsql::DropStatement *statement);
+
+    static QueryResult *show_index(const hsql::ShowStatement *statement);
 
     /**
      * Pull out column name and attributes from AST's column definition clause

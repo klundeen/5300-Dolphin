@@ -30,6 +30,9 @@ ostream &operator<<(ostream &out, const QueryResult &qres) {
                 case ColumnAttribute::TEXT:
                     out << "\"" << value.s << "\"";
                     break;
+                case ColumnAttribute::BOOLEAN:
+                    out << (value.n == 0 ? "false" : "true");
+                    break;
                 default:
                     out << "???";
                 }
@@ -258,4 +261,12 @@ QueryResult *SQLExec::show_columns(const ShowStatement *statement) {
 
     message = "successfully returned " + std::to_string(rows->size()) + " rows";
     return new QueryResult(cn, ca, rows, message);
+}
+
+QueryResult *SQLExec::show_index(const ShowStatement *statement) {
+     return new QueryResult("show index not implemented"); // FIXME
+}
+
+QueryResult *SQLExec::drop_index(const DropStatement *statement) {
+    return new QueryResult("drop index not implemented");  // FIXME
 }
