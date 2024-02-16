@@ -124,6 +124,11 @@ class Indices : public HeapTable {
     virtual ~Indices() {}
 
     /**
+     * Clears the table cache and closes all indices.
+     */
+    static void clear_cache();
+
+    /**
      * Get the search key for the given index.
      * @param table_name      what table the requested index is on
      * @param index_name      name of index (unique by table)

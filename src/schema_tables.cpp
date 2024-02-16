@@ -74,7 +74,7 @@ Tables::Tables() : HeapTable(TABLE_NAME, COLUMN_NAMES(), COLUMN_ATTRIBUTES()) {
 
 // Close all cached tables and clear the cache
 void Tables::clear_cache() {
-    DbRelation *table_tmp;
+    DbRelation *table_tmp = nullptr;
     for (auto const &table : Tables::table_cache) {
         if (table.first == TABLE_NAME) {
             table_tmp = table.second;
@@ -326,6 +326,15 @@ ColumnAttributes &Indices::COLUMN_ATTRIBUTES() {
 // ctor - we have a fixed table structure
 Indices::Indices()
     : HeapTable(TABLE_NAME, COLUMN_NAMES(), COLUMN_ATTRIBUTES()) {}
+
+// Close all cached tables and clear the cache
+void Indices::clear_cache() {
+    for (auto const &index : Indices::index_cache) {
+        index.second->close();
+        delete index.second;
+    }
+    Indices::index_cache.clear();
+}
 
 // Manually check constraints -- unique on (table, index, column)
 Handle Indices::insert(const ValueDict *row) {

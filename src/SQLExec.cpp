@@ -10,6 +10,7 @@ using namespace hsql;
 
 // define static data
 Tables *SQLExec::tables = nullptr;
+Indices *SQLExec::indices = nullptr;
 
 // make query result be printable
 ostream &operator<<(ostream &out, const QueryResult &qres) {
@@ -55,6 +56,11 @@ QueryResult *SQLExec::execute(const SQLStatement *statement) {
         SQLExec::tables = new Tables();
         SQLExec::tables->open();
     }
+    // Open the _indices table
+    if (SQLExec::indices == nullptr) {
+        SQLExec::indices = new Indices();
+        SQLExec::indices->open();
+    }
 
     try {
         switch (statement->type()) {
@@ -73,6 +79,12 @@ QueryResult *SQLExec::execute(const SQLStatement *statement) {
 }
 
 void SQLExec::close() {
+    if (SQLExec::indices != nullptr) {
+        SQLExec::indices->clear_cache();
+        SQLExec::indices->close();
+        delete SQLExec::indices;
+        SQLExec::indices = nullptr;
+    }
     if (SQLExec::tables != nullptr) {
         SQLExec::tables->clear_cache();
         SQLExec::tables->close();
