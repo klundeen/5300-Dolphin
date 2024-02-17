@@ -47,7 +47,15 @@ ostream &operator<<(ostream &out, const QueryResult &qres) {
 }
 
 QueryResult::~QueryResult() {
-    // FIXME
+    if (column_names != nullptr)
+        delete column_names;
+    if (column_attributes != nullptr)
+        delete column_attributes;
+    if (rows != nullptr) {
+        for (auto row : *rows)
+            delete row;
+        delete rows;
+    }
 }
 
 QueryResult *SQLExec::execute(const SQLStatement *statement) {
