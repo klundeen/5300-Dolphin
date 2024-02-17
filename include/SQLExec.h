@@ -84,6 +84,8 @@ class SQLExec {
     // recursive decent into the AST
     static QueryResult *create_table(const hsql::CreateStatement *statement);
 
+    static QueryResult *create_index(const hsql::CreateStatement *statement);
+
     static QueryResult *create(const hsql::CreateStatement *statement);
 
     static QueryResult *drop_table(const std::string table_name);

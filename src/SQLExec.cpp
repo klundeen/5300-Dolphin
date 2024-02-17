@@ -163,11 +163,43 @@ QueryResult *SQLExec::create_table(const CreateStatement *statement) {
     return new QueryResult("created " + std::string(statement->tableName));
 }
 
+QueryResult *SQLExec::create_index(const CreateStatement *statement) {
+    ValueDict row;
+    row["table_name"] = Value(statement->tableName);
+    row["index_name"] = Value(statement->indexName);
+    row["seq_in_index"] = Value(0);
+    row["index_type"] = Value(statement->indexType);
+    row["is_unique"] = std::string(statement->indexType) == "BTREE"
+                           ? Value(true)
+                           : Value(false);
+
+    Handles column_handles;
+    try {
+        for (const char *col : *statement->indexColumns) {
+            row["column_name"] = Value(col);
+            row["seq_in_index"].n++;
+            Handle column_handle = SQLExec::indices->insert(&row);
+            column_handles.push_back(column_handle);
+        }
+    } catch (const DbRelationError &e) {
+        for (const Handle &handle : column_handles)
+            SQLExec::indices->del(handle);
+        throw e;
+    }
+
+    DbIndex &index =
+        SQLExec::indices->get_index(statement->indexName, statement->tableName);
+    index.create();
+    return new QueryResult("created index " +
+                           std::string(statement->indexName));
+}
+
 QueryResult *SQLExec::create(const CreateStatement *statement) {
     switch (statement->type) {
     case CreateStatement::kTable:
         return create_table(statement);
-        break;
+    case CreateStatement::kIndex:
+        return create_index(statement);
     default:
         return new QueryResult("not implemented");
     }
