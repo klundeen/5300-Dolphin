@@ -454,7 +454,7 @@ string ParseTreeToString::show(const ShowStatement *stmt) {
         ret += string("COLUMNS FROM ") + stmt->tableName;
         break;
     case ShowStatement::kIndex:
-        ret += "INDEX";
+        ret += string("INDEX FROM ") + stmt->tableName;
         break;
     default:
         ret += "?what?";

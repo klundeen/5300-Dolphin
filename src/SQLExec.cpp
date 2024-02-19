@@ -218,6 +218,8 @@ QueryResult *SQLExec::show(const ShowStatement *statement) {
         return show_tables();
     } else if (statement->type == ShowStatement::kColumns) {
         return show_columns(statement);
+    } else if (statement->type == ShowStatement::kIndex){
+        return show_index(statement);
     } else {
         return new QueryResult("not implemented");
     }
@@ -275,10 +277,39 @@ QueryResult *SQLExec::show_columns(const ShowStatement *statement) {
     return new QueryResult(cn, ca, rows, message);
 }
 
-QueryResult *SQLExec::show_index(const ShowStatement *statement) {
-     return new QueryResult("show index not implemented"); // FIXME
-}
+QueryResult *SQLExec::show_index(const ShowStatement* statement){
 
+    ColumnNames *cn = new ColumnNames();
+    ColumnAttributes *ca = new ColumnAttributes();
+    ValueDicts *rows = new ValueDicts();
+    std::string message;
+
+    cn->push_back("table_name");
+    cn->push_back("index_name");
+    cn->push_back("column_name");
+    cn->push_back("seq_in_index");
+    cn->push_back("index_type");
+    cn->push_back("is_unique");
+
+    ca->push_back(ColumnAttribute::DataType::TEXT);
+    ca->push_back(ColumnAttribute::DataType::TEXT);
+    ca->push_back(ColumnAttribute::DataType::TEXT);
+    ca->push_back(ColumnAttribute::DataType::INT);
+    ca->push_back(ColumnAttribute::DataType::TEXT);
+    ca->push_back(ColumnAttribute::DataType::BOOLEAN);
+
+    ValueDict new_row;
+    new_row["table_name"] = Value(statement->tableName);
+    Handles* handles = SQLExec::indices->select(&new_row);
+    for (auto const &handle : *handles) {
+        ValueDict *row = SQLExec::indices->project(handle, cn);
+        rows->push_back(row);
+    }
+
+    message = "successfully returned " + std::to_string(rows->size()) + " rows";
+    return new QueryResult(cn, ca, rows, message);
+
+}
 QueryResult *SQLExec::drop_index(const DropStatement *statement) {
     return new QueryResult("drop index not implemented");  // FIXME
 }
