@@ -173,8 +173,18 @@ QueryResult *SQLExec::create_table(const CreateStatement *statement) {
 }
 
 QueryResult *SQLExec::create_index(const CreateStatement *statement) {
-    ValueDict row;
-    row["table_name"] = Value(statement->tableName);
+    ValueDict row, select_row;
+
+    // Check that the table exists
+    select_row["table_name"] = Value(statement->tableName);
+    Handles *tables = SQLExec::tables->select(&select_row);
+    if (tables->size() == 0) {
+        delete tables;
+        throw SQLExecError("Table " + select_row["table_name"].s + " not found");
+    }
+    delete tables;
+
+    row["table_name"] = select_row["table_name"];
     row["index_name"] = Value(statement->indexName);
     row["seq_in_index"] = Value(0);
     row["index_type"] = Value(statement->indexType);
@@ -183,14 +193,26 @@ QueryResult *SQLExec::create_index(const CreateStatement *statement) {
                            : Value(false);
 
     Handles column_handles;
+    DbRelation &columns = SQLExec::tables->get_table(Columns::TABLE_NAME);
     try {
         for (const char *col : *statement->indexColumns) {
-            row["column_name"] = Value(col);
+            select_row["column_name"] = Value(col);
+            Handles *column = columns.select(&select_row);
+            if (column->size() == 0) {
+                delete column;
+                throw SQLExecError("Column " + select_row["column_name"].s + " not found");
+            }
+            delete column;
+            row["column_name"] = select_row["column_name"];
             row["seq_in_index"].n++;
             Handle column_handle = SQLExec::indices->insert(&row);
             column_handles.push_back(column_handle);
         }
     } catch (const DbRelationError &e) {
+        for (const Handle &handle : column_handles)
+            SQLExec::indices->del(handle);
+        throw e;
+    } catch (const SQLExecError &e) {
         for (const Handle &handle : column_handles)
             SQLExec::indices->del(handle);
         throw e;
