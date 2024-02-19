@@ -153,3 +153,4 @@ SQL>
 - `Milestone2`: Adds Heap storage classes and related tests
 - `Milestone3_prep`: Refactors and adds support for schema _tables and _columns
 - `Milestone3`: Implements CREATE TABLE, DROP TABLE, SHOW TABLES, and SHOW COLUMNS
+- `Milestone4`: Implements CREATE INDEX, DROP INDEX, and SHOW INDEX
