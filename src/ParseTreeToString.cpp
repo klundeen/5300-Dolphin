@@ -414,21 +414,39 @@ string ParseTreeToString::insert(const InsertStatement *stmt) {
 
 string ParseTreeToString::create(const CreateStatement *stmt) {
     string ret("CREATE ");
-    if (stmt->type != CreateStatement::kTable)
-        return ret + "...";
-    ret += "TABLE ";
-    if (stmt->ifNotExists)
-        ret += "IF NOT EXISTS ";
-    ret += string(stmt->tableName) + " (";
-    bool doComma = false;
-    for (ColumnDefinition *col : *stmt->columns) {
-        if (doComma)
-            ret += ", ";
-        ret += column_definition(col);
-        doComma = true;
+    if (stmt->type == CreateStatement::kTable){    
+        ret += "TABLE ";
+        if (stmt->ifNotExists)
+            ret += "IF NOT EXISTS ";
+        ret += string(stmt->tableName) + " (";
+        bool doComma = false;
+        for (ColumnDefinition *col : *stmt->columns) {
+            if (doComma)
+                ret += ", ";
+            ret += column_definition(col);
+            doComma = true;
+        }
+        ret += ")";
+        return ret;
     }
-    ret += ")";
-    return ret;
+    else if (stmt->type == CreateStatement::kIndex){
+        string ind_name = string(stmt->indexName);
+        string tab_name = string(stmt->tableName);
+        string ind_type = string(stmt->indexType);
+        ret += "INDEX " + ind_name + " ON " + tab_name + " USING " + ind_type + " (";
+        bool doComma = false;
+        for (char* col : *stmt->indexColumns) {
+            if (doComma)
+                ret += ", ";
+            ret += string(col);
+            doComma = true;
+        }
+        ret += ")";
+        return ret;
+    }
+    else{
+        return ret + "...";
+    }
 }
 
 string ParseTreeToString::drop(const DropStatement *stmt) {
@@ -437,6 +455,9 @@ string ParseTreeToString::drop(const DropStatement *stmt) {
     case DropStatement::kTable:
         ret += "TABLE ";
         break;
+    case DropStatement::kIndex:
+        ret += "INDEX " + string(stmt->indexName) + " FROM ";
+        break;  
     default:
         ret += "? ";
     }
