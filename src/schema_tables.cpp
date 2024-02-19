@@ -377,6 +377,7 @@ void Indices::del(Handle handle) {
         delete index;
     }
     HeapTable::del(handle);
+    delete row;
 }
 
 // Return a list of column names and column attributes for given table.

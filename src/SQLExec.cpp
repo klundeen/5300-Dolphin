@@ -366,6 +366,7 @@ QueryResult *SQLExec::show_index(const ShowStatement* statement){
         ValueDict *row = SQLExec::indices->project(handle, cn);
         rows->push_back(row);
     }
+    delete handles;
 
     message = "successfully returned " + std::to_string(rows->size()) + " rows";
     return new QueryResult(cn, ca, rows, message);
