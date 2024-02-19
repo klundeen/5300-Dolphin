@@ -4,6 +4,7 @@
  * @see "Seattle University, CPSC5300, Winter Quarter 2024"
  */
 #include "SQLExec.h"
+#include <sstream>
 
 using namespace std;
 using namespace hsql;
@@ -214,6 +215,8 @@ QueryResult *SQLExec::create(const CreateStatement *statement) {
 }
 
 QueryResult *SQLExec::drop_table(const std::string table_name) {
+    std::stringstream result;
+
     // Check that the table exists and get its handle
     ValueDict where;
     where["table_name"] = Value(table_name);
@@ -229,6 +232,19 @@ QueryResult *SQLExec::drop_table(const std::string table_name) {
     DbRelation &table = SQLExec::tables->get_table(table_name);
     table.drop();
 
+    // Drop indices
+    for (Identifier const &index_name :
+         SQLExec::indices->get_index_names(table_name)) {
+        try {
+            QueryResult *index_result = drop_index(table_name, index_name);
+            result << *index_result << "\n";
+            delete index_result;
+        } catch (const SQLExecError &e) {
+            // Warn but continue
+            result << e.what() << "\n";
+        }
+    }
+
     // Remove the table from the _tables table
     SQLExec::tables->del(handle);
 
@@ -241,13 +257,17 @@ QueryResult *SQLExec::drop_table(const std::string table_name) {
         columns.del(handle);
     delete handles;
 
-    return new QueryResult("dropped " + table_name);
+    result << "dropped " << table_name;
+    return new QueryResult(result.str());
 }
 
 QueryResult *SQLExec::drop(const DropStatement *statement) {
     switch (statement->type) {
     case DropStatement::kTable:
         return drop_table(std::string(statement->name));
+    case DropStatement::kIndex:
+        return drop_index(std::string(statement->name),
+                          std::string(statement->indexName));
     default:
         return new QueryResult("not implemented");
     }
@@ -319,6 +339,26 @@ QueryResult *SQLExec::show_index(const ShowStatement *statement) {
      return new QueryResult("show index not implemented"); // FIXME
 }
 
-QueryResult *SQLExec::drop_index(const DropStatement *statement) {
-    return new QueryResult("drop index not implemented");  // FIXME
+QueryResult *SQLExec::drop_index(const Identifier &table_name,
+                                 const Identifier &index_name) {
+    // Check that the index exists and get its handle
+    ValueDict where;
+    where["table_name"] = Value(table_name);
+    where["index_name"] = Value(index_name);
+    Handles *handles = SQLExec::indices->select(&where);
+    if (handles->size() == 0) {
+        delete handles;
+        throw SQLExecError(index_name + " not found in _indices");
+    }
+
+    // Drop the index
+    DbIndex &index = SQLExec::indices->get_index(index_name, table_name);
+    index.drop();
+
+    // Remove the index from the _indices table
+    for (Handle const &handle : *handles)
+        SQLExec::indices->del(handle);
+    delete handles;
+
+    return new QueryResult("dropped index " + index_name);
 }

@@ -98,7 +98,8 @@ class SQLExec {
 
     static QueryResult *show_columns(const hsql::ShowStatement *statement);
 
-    static QueryResult *drop_index(const hsql::DropStatement *statement);
+    static QueryResult *drop_index(const Identifier &table_name,
+                                   const Identifier &index_name);
 
     static QueryResult *show_index(const hsql::ShowStatement *statement);
 
