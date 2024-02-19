@@ -298,8 +298,8 @@ QueryResult *SQLExec::show_tables() {
         Identifier table_table_name = Tables::TABLE_NAME;
         Identifier columns_table_name = Columns::TABLE_NAME;
 
-        if (table_name != table_table_name &&
-            table_name != columns_table_name) {
+        // Hide tables that start with underscore
+        if (table_name[0] != '_') {
             rows->push_back(row);
         }
     }
