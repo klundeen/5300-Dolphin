@@ -317,14 +317,15 @@ QueryResult *SQLExec::show_tables() {
     for (auto const &handle : *handles) {
         ValueDict *row = SQLExec::tables->project(handle, cn);
         Identifier table_name = row->at("table_name").s;
-        Identifier table_table_name = Tables::TABLE_NAME;
-        Identifier columns_table_name = Columns::TABLE_NAME;
 
         // Hide tables that start with underscore
         if (table_name[0] != '_') {
             rows->push_back(row);
+        } else {
+            delete row;
         }
     }
+    delete handles;
     tables->get_columns(Tables::TABLE_NAME, *cn, *ca);
     message = "successfully returned " + std::to_string(rows->size()) + " rows";
     return new QueryResult(cn, ca, rows, message);
@@ -354,6 +355,7 @@ QueryResult *SQLExec::show_columns(const ShowStatement *statement) {
         ValueDict *row = new_table.project(handle, cn);
         rows->push_back(row);
     }
+    delete handles;
 
     message = "successfully returned " + std::to_string(rows->size()) + " rows";
     return new QueryResult(cn, ca, rows, message);
