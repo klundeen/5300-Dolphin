@@ -250,10 +250,6 @@ QueryResult *SQLExec::drop_table(const std::string table_name) {
     Handle handle = handles->at(0);
     delete handles;
 
-    // Drop the table
-    DbRelation &table = SQLExec::tables->get_table(table_name);
-    table.drop();
-
     // Drop indices
     for (Identifier const &index_name :
          SQLExec::indices->get_index_names(table_name)) {
@@ -266,6 +262,10 @@ QueryResult *SQLExec::drop_table(const std::string table_name) {
             result << e.what() << "\n";
         }
     }
+
+    // Drop the table
+    DbRelation &table = SQLExec::tables->get_table(table_name);
+    table.drop();
 
     // Remove the table from the _tables table
     SQLExec::tables->del(handle);
