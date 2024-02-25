@@ -1,5 +1,5 @@
 /**
- * @file HeapTable.h - Implementation of storage_engine with a heap file
+ * @file heap_table.h - Implementation of storage_engine with a heap file
  * structure. HeapTable: DbRelation
  *
  * @author Kevin Lundeen
@@ -7,8 +7,8 @@
  */
 #pragma once
 
-#include "HeapFile.h"
-#include "SlottedPage.h"
+#include "heap_file.h"
+#include "slotted_page.h"
 #include "storage_engine.h"
 
 /**

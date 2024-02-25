@@ -1,13 +1,21 @@
 /**
- * @file SQLExec.cpp - implementation of SQLExec class
+ * @file sql_exec.cpp - implementation of SQLExec class
  * @author Kevin Lundeen
  * @see "Seattle University, CPSC5300, Winter Quarter 2024"
  */
-#include "SQLExec.h"
+#include "sql_exec.h"
 #include <sstream>
 
 using namespace std;
 using namespace hsql;
+
+// define constants
+const Identifier TABLE_NAME = "table_name";
+const Identifier INDEX_NAME = "index_name";
+const Identifier COLUMN_NAME = "column_name";
+const Identifier SEQ_IN_INDEX = "seq_in_index";
+const Identifier INDEX_TYPE = "index_type";
+const Identifier IS_UNIQUE = "is_unique";
 
 // define static data
 Tables *SQLExec::tables = nullptr;
@@ -134,7 +142,7 @@ QueryResult *SQLExec::create_table(const CreateStatement *statement) {
     ValueDict row;
     Handle table_handle;
     try {
-        row["table_name"] = Value(statement->tableName);
+        row[TABLE_NAME] = Value(statement->tableName);
         table_handle = SQLExec::tables->insert(&row);
     } catch (const DbRelationError &e) {
         throw e;
@@ -145,8 +153,8 @@ QueryResult *SQLExec::create_table(const CreateStatement *statement) {
     Handles column_handles; // Track column handles so we can roll-back
     try {
         for (size_t i = 0; i < column_names.size(); i++) {
-            row["table_name"] = Value(statement->tableName);
-            row["column_name"] = Value(column_names[i]);
+            row[TABLE_NAME] = Value(statement->tableName);
+            row[COLUMN_NAME] = Value(column_names[i]);
             switch (column_attributes[i].get_data_type()) {
             case ColumnAttribute::INT:
                 row["data_type"] = Value("INT");
@@ -176,19 +184,19 @@ QueryResult *SQLExec::create_index(const CreateStatement *statement) {
     ValueDict row, select_row;
 
     // Check that the table exists
-    select_row["table_name"] = Value(statement->tableName);
+    select_row[TABLE_NAME] = Value(statement->tableName);
     Handles *tables = SQLExec::tables->select(&select_row);
     if (tables->size() == 0) {
         delete tables;
-        throw SQLExecError("Table " + select_row["table_name"].s + " not found");
+        throw SQLExecError("Table " + select_row[TABLE_NAME].s + " not found");
     }
     delete tables;
 
-    row["table_name"] = select_row["table_name"];
-    row["index_name"] = Value(statement->indexName);
-    row["seq_in_index"] = Value(0);
-    row["index_type"] = Value(statement->indexType);
-    row["is_unique"] = std::string(statement->indexType) == "BTREE"
+    row[TABLE_NAME] = select_row[TABLE_NAME];
+    row[INDEX_NAME] = Value(statement->indexName);
+    row[SEQ_IN_INDEX] = Value(0);
+    row[INDEX_TYPE] = Value(statement->indexType);
+    row[IS_UNIQUE] = std::string(statement->indexType) == "BTREE"
                            ? Value(true)
                            : Value(false);
 
@@ -196,15 +204,15 @@ QueryResult *SQLExec::create_index(const CreateStatement *statement) {
     DbRelation &columns = SQLExec::tables->get_table(Columns::TABLE_NAME);
     try {
         for (const char *col : *statement->indexColumns) {
-            select_row["column_name"] = Value(col);
+            select_row[COLUMN_NAME] = Value(col);
             Handles *column = columns.select(&select_row);
             if (column->size() == 0) {
                 delete column;
-                throw SQLExecError("Column " + select_row["column_name"].s + " not found");
+                throw SQLExecError("Column " + select_row[COLUMN_NAME].s + " not found");
             }
             delete column;
-            row["column_name"] = select_row["column_name"];
-            row["seq_in_index"].n++;
+            row[COLUMN_NAME] = select_row[COLUMN_NAME];
+            row[SEQ_IN_INDEX].n++;
             Handle column_handle = SQLExec::indices->insert(&row);
             column_handles.push_back(column_handle);
         }
@@ -241,7 +249,7 @@ QueryResult *SQLExec::drop_table(const std::string table_name) {
 
     // Check that the table exists and get its handle
     ValueDict where;
-    where["table_name"] = Value(table_name);
+    where[TABLE_NAME] = Value(table_name);
     Handles *handles = SQLExec::tables->select(&where);
     if (handles->size() == 0) {
         delete handles;
@@ -273,7 +281,7 @@ QueryResult *SQLExec::drop_table(const std::string table_name) {
     // Remove the columns from the _columns table
     DbRelation &columns = SQLExec::tables->get_table(Columns::TABLE_NAME);
     where.clear();
-    where["table_name"] = Value(table_name);
+    where[TABLE_NAME] = Value(table_name);
     handles = columns.select(&where);
     for (Handle handle : *handles)
         columns.del(handle);
@@ -316,7 +324,7 @@ QueryResult *SQLExec::show_tables() {
 
     for (auto const &handle : *handles) {
         ValueDict *row = SQLExec::tables->project(handle, cn);
-        Identifier table_name = row->at("table_name").s;
+        Identifier table_name = row->at(TABLE_NAME).s;
 
         // Hide tables that start with underscore
         if (table_name[0] != '_') {
@@ -337,15 +345,15 @@ QueryResult *SQLExec::show_columns(const ShowStatement *statement) {
     ValueDicts *rows = new ValueDicts();
     std::string message;
 
-    cn->push_back("table_name");
-    cn->push_back("column_name");
+    cn->push_back(TABLE_NAME);
+    cn->push_back(COLUMN_NAME);
     cn->push_back("data_type");
 
     ColumnAttribute column_attr(ColumnAttribute::DataType::TEXT);
     ca->push_back(column_attr);
 
     ValueDict new_row;
-    new_row["table_name"] = Value(statement->tableName);
+    new_row[TABLE_NAME] = Value(statement->tableName);
 
     Identifier tab_name = Columns::TABLE_NAME;
     DbRelation &new_table = SQLExec::tables->get_table(tab_name);
@@ -368,12 +376,12 @@ QueryResult *SQLExec::show_index(const ShowStatement* statement){
     ValueDicts *rows = new ValueDicts();
     std::string message;
 
-    cn->push_back("table_name");
-    cn->push_back("index_name");
-    cn->push_back("column_name");
-    cn->push_back("seq_in_index");
-    cn->push_back("index_type");
-    cn->push_back("is_unique");
+    cn->push_back(TABLE_NAME);
+    cn->push_back(INDEX_NAME);
+    cn->push_back(COLUMN_NAME);
+    cn->push_back(SEQ_IN_INDEX);
+    cn->push_back(INDEX_TYPE);
+    cn->push_back(IS_UNIQUE);
 
     ca->push_back(ColumnAttribute::DataType::TEXT);
     ca->push_back(ColumnAttribute::DataType::TEXT);
@@ -384,7 +392,7 @@ QueryResult *SQLExec::show_index(const ShowStatement* statement){
 
 
     ValueDict new_row;
-    new_row["table_name"] = Value(statement->tableName);
+    new_row[TABLE_NAME] = Value(statement->tableName);
     Handles* handles = SQLExec::indices->select(&new_row);
     for (auto const &handle : *handles) {
         ValueDict *row = SQLExec::indices->project(handle, cn);
@@ -401,8 +409,8 @@ QueryResult *SQLExec::drop_index(const Identifier &table_name,
                                  const Identifier &index_name) {
     // Check that the index exists and get its handle
     ValueDict where;
-    where["table_name"] = Value(table_name);
-    where["index_name"] = Value(index_name);
+    where[TABLE_NAME] = Value(table_name);
+    where[INDEX_NAME] = Value(index_name);
     Handles *handles = SQLExec::indices->select(&where);
     if (handles->size() == 0) {
         delete handles;

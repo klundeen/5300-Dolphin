@@ -1,5 +1,5 @@
 /**
- * @file SQLExec.h - SQLExec class
+ * @file sql_exec.h - SQLExec class
  * @author Kevin Lundeen
  * @see "Seattle University, CPSC5300, Winter Quarter 2024"
  */
