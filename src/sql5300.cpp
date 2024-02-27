@@ -4,7 +4,7 @@
  * @see "Seattle University, cpsc4300/5300, Spring 2021"
  */
 #include "ParseTreeToString.h"
-#include "SQLExec.h"
+#include "sql_exec.h"
 #include "SQLParser.h"
 #include "db_cxx.h"
 #include <cstdlib>

@@ -1,226 +1,122 @@
-/**
- * @file SlottedPage.cpp
- * @author K Lundeen
- * @see Seattle University, CPSC5300
- */
-#include "SlottedPage.h"
+#include "heap_storage.h"
 #include <cstring>
 
 using namespace std;
-typedef uint16_t u16;
+/**
+ * Test helper. Sets the row's a and b values.
+ * @param row to set
+ * @param a column value
+ * @param b column value
+ */
+void test_set_row(ValueDict &row, int a, string b) {
+    row["a"] = Value(a);
+    row["b"] = Value(b);
+    row["c"] = Value(a % 2 == 0); // true for even, false for od
+}
 
 /**
- * SlottedPage constructor
- * @param block
- * @param block_id
- * @param is_new
+ * Test helper. Compares row to expected values for columns a and b.
+ * @param table    relation where row is
+ * @param handle   row to check
+ * @param a        expected column value
+ * @param b        expected column value
+ * @return         true if actual == expected for both columns, false otherwise
  */
-SlottedPage::SlottedPage(Dbt &block, BlockID block_id, bool is_new)
-    : DbBlock(block, block_id, is_new) {
-    if (is_new) {
-        this->num_records = 0;
-        this->end_free = DbBlock::BLOCK_SZ - 1;
-        put_header();
-    } else {
-        get_header(this->num_records, this->end_free);
+bool test_compare(DbRelation &table, Handle handle, int a, string b) {
+    ValueDict *result = table.project(handle);
+    Value value = (*result)["a"];
+    if (value.n != a) {
+        delete result;
+        return false;
     }
-}
-
-/**
- * Add a new record to the block.
- * @param data
- * @return the new block's id
- */
-RecordID SlottedPage::add(const Dbt *data) {
-    if (!has_room((u16)data->get_size()))
-        throw DbBlockNoRoomError("not enough room for new record");
-    u16 id = ++this->num_records;
-    u16 size = (u16)data->get_size();
-    this->end_free -= size;
-    u16 loc = this->end_free + 1U;
-    put_header();
-    put_header(id, size, loc);
-    memcpy(this->address(loc), data->get_data(), size);
-    return id;
-}
-
-/**
- * Get a record from the block.
- * @param record_id
- * @return the bits of the record as stored in the block, or nullptr if it has
- * been deleted (freed by caller)
- */
-Dbt *SlottedPage::get(RecordID record_id) const {
-    u16 size, loc;
-    get_header(size, loc, record_id);
-    if (loc == 0)
-        return nullptr; // this is just a tombstone, record has been deleted
-    return new Dbt(this->address(loc), size);
-}
-
-/**
- * Replace the record with the given data.
- * @param record_id   record to replace
- * @param data        new contents of record_id
- * @throws DbBlockNoRoomError if it won't fit
- */
-void SlottedPage::put(RecordID record_id, const Dbt &data) {
-    u16 size, loc;
-    get_header(size, loc, record_id);
-    u16 new_size = (u16)data.get_size();
-    if (new_size > size) {
-        u16 extra = new_size - size;
-        if (!has_room(extra))
-            throw DbBlockNoRoomError("not enough room for enlarged record");
-        slide(loc, loc - extra);
-        memcpy(this->address(loc - extra), data.get_data(), new_size);
-    } else {
-        memcpy(this->address(loc), data.get_data(), new_size);
-        slide(loc + new_size, loc + size);
+    value = (*result)["b"];
+    if (value.s != b) {
+        delete result;
+        return false;
     }
-    get_header(size, loc, record_id);
-    put_header(record_id, new_size, loc);
+    value = (*result)["c"];
+    delete result;
+    if (value.n != (a % 2 == 0))
+        return false;
+    return true;
 }
 
 /**
- * Delete a record from the page.
- *
- * Mark the given id as deleted by changing its size to zero and its location to
- * 0. Compact the rest of the data in the block. But keep the record ids the
- * same for everyone.
- *
- * @param record_id  record to delete
+ * Testing function for heap storage engine.
+ * @return true if the tests all succeeded
  */
-void SlottedPage::del(RecordID record_id) {
-    u16 size, loc;
-    get_header(size, loc, record_id);
-    put_header(record_id, 0, 0); // 0 is the tombstone sentinel
-    slide(loc, loc + size);
-}
+bool test_heap_storage() {
+    if (!test_slotted_page())
+        return assertion_failure("slotted page tests failed");
+    cout << endl << "slotted page tests ok" << endl;
 
-/**
- * Sequence of all non-deleted record IDs.
- * @return  sequence of IDs (freed by caller)
- */
-RecordIDs *SlottedPage::ids(void) const {
-    RecordIDs *vec = new RecordIDs();
-    u16 size, loc;
-    for (RecordID record_id = 1; record_id <= this->num_records; record_id++) {
-        get_header(size, loc, record_id);
-        if (loc != 0)
-            vec->push_back(record_id);
+    ColumnNames column_names;
+    column_names.push_back("a");
+    column_names.push_back("b");
+    column_names.push_back("c");
+    ColumnAttributes column_attributes;
+    ColumnAttribute ca(ColumnAttribute::INT);
+    column_attributes.push_back(ca);
+    ca.set_data_type(ColumnAttribute::TEXT);
+    column_attributes.push_back(ca);
+    ca.set_data_type(ColumnAttribute::BOOLEAN);
+    column_attributes.push_back(ca);
+
+    HeapTable table1("_test_create_drop_cpp", column_names, column_attributes);
+    table1.create();
+    cout << "create ok" << endl;
+    table1.drop(); // drop makes the object unusable because of BerkeleyDB
+                   // restriction -- maybe want to fix this some day
+    cout << "drop ok" << endl;
+
+    HeapTable table("_test_data_cpp", column_names, column_attributes);
+    table.create_if_not_exists();
+    cout << "create_if_not_exists ok" << endl;
+
+    ValueDict row;
+    string b = "Four score and seven years ago our fathers brought forth on "
+               "this continent, a new nation, conceived in Liberty, and "
+               "dedicated to the proposition that all men are created equal.";
+    test_set_row(row, -1, b);
+    table.insert(&row);
+    cout << "insert ok" << endl;
+    Handles *handles = table.select();
+    if (!test_compare(table, (*handles)[0], -1, b))
+        return false;
+    cout << "select/project ok " << handles->size() << endl;
+    delete handles;
+
+    Handle last_handle;
+    for (int i = 0; i < 1000; i++) {
+        test_set_row(row, i, b);
+        last_handle = table.insert(&row);
     }
-    return vec;
-}
-
-/**
- * Get the size and offset for given id. For id of zero, it is the block header.
- * @param size  set to the size from given header
- * @param loc   set to the byte offset from given header
- * @param id    the id of the header to fetch
- */
-void SlottedPage::get_header(u_int16_t &size, u_int16_t &loc,
-                             RecordID id) const {
-    size = get_n((u16)4 * id);
-    loc = get_n((u16)(4 * id + 2));
-}
-
-/**
- * Store the size and offset for given id. For id of zero, store the block
- * header.
- * @param id
- * @param size
- * @param loc
- */
-void SlottedPage::put_header(RecordID id, u16 size, u16 loc) {
-    if (id ==
-        0) { // called the put_header() version and using the default params
-        size = this->num_records;
-        loc = this->end_free;
+    handles = table.select();
+    if (handles->size() != 1001)
+        return false;
+    int i = -1;
+    for (auto const &handle : *handles) {
+        if (!test_compare(table, handle, i++, b))
+            return false;
     }
-    put_n((u16)4 * id, size);
-    put_n((u16)(4 * id + 2), loc);
-}
+    cout << "many inserts/select/projects ok" << endl;
+    delete handles;
 
-/**
- * Calculate if we have room to store a record with given size. The size should
- * include the 4 bytes for the header, too, if this is an add.
- * @param size   size of the new record (not including the header space needed)
- * @return       true if there is enough room, false otherwise
- */
-bool SlottedPage::has_room(u16 size) const {
-    u16 headers = (u16)(4 * (this->num_records + 1));
-    u16 unused;
-    if (this->end_free <= headers)
-        unused = 0;
-    else
-        unused = this->end_free - headers;
-    return size + (u16)4 <= unused;
-}
-
-/**
- * Slide the contents to compensate for a smaller/larger record.
- *
- * If start < end, then remove data from offset start up to but not including
- * offset end by sliding data that is to the left of start to the right. If
- * start > end, then make room for extra data from end to start by sliding data
- * that is to the left of start to the left. Also fix up any record headers
- * whose data has slid. Assumes there is enough room if it is a left shift (end
- * < start).
- *
- * @param start  beginning of slide
- * @param end    end of slide
- */
-void SlottedPage::slide(u_int16_t start, u_int16_t end) {
-    int shift = end - start;
-    if (shift == 0)
-        return;
-
-    // slide data
-    void *to = this->address((u16)(this->end_free + 1 + shift));
-    void *from = this->address((u16)(this->end_free + 1));
-    int bytes = start - (this->end_free + 1U);
-    memmove(to, from, bytes);
-
-    // fix up headers to the right
-    RecordIDs *record_ids = ids();
-    for (auto const &record_id : *record_ids) {
-        u16 size, loc;
-        get_header(size, loc, record_id);
-        if (loc <= start) {
-            loc += shift;
-            put_header(record_id, size, loc);
-        }
+    table.del(last_handle);
+    handles = table.select();
+    if (handles->size() != 1000)
+        return false;
+    i = -1;
+    for (auto const &handle : *handles) {
+        if (!test_compare(table, handle, i++, b))
+            return false;
     }
-    delete record_ids;
-    this->end_free += shift;
-    put_header();
+    cout << "del ok" << endl;
+    table.drop();
+    delete handles;
+    return true;
 }
 
-/**
- * Get 2-byte integer at given offset in block.
- */
-u16 SlottedPage::get_n(u16 offset) const {
-    return *(u16 *)this->address(offset);
-}
-
-/**
- * Put a 2-byte integer at given offset in block.
- * @param offset number of bytes into the page
- * @param n
- */
-void SlottedPage::put_n(u16 offset, u16 n) {
-    *(u16 *)this->address(offset) = n;
-}
-
-/**
- * Make a void* pointer for a given offset into the data block.
- * @param offset
- * @return
- */
-void *SlottedPage::address(u16 offset) const {
-    return (void *)((char *)this->block.get_data() + offset);
-}
 
 /**
  * Print out given failure message and return false.

@@ -30,9 +30,19 @@
 *.exe
 *.out
 *.app
+sql5300
 
 # Other
 .DS_Store
 .cache/
 *.env
 compile_commands.json
+
+# IDEs
+.vscode
+
+# Miscellaneous
+data/
+external/
+backup/
+utilities/

@@ -1,5 +1,5 @@
 /**
- * @file HeapFile.h - Implementation of storage_engine with a heap file
+ * @file heap_file.h - Implementation of storage_engine with a heap file
  * structure. HeapFile: DbFile
  *
  * @author Kevin Lundeen
@@ -7,7 +7,7 @@
  */
 #pragma once
 
-#include "SlottedPage.h"
+#include "slotted_page.h"
 #include "db_cxx.h"
 
 /**

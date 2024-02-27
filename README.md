@@ -124,21 +124,21 @@ SQL>
 ```
 5300-Dolphin/
 ├── include/
-│   ├── HeapFile.h // Definition for HeapFile, a heap implementation of DbFile
-│   ├── HeapTable.h // Definition for HeapFile, a heap implementation of DbRelation
+│   ├── heap_file.h // Definition for HeapFile, a heap implementation of DbFile
+│   ├── heap_table.h // Definition for HeapFile, a heap implementation of DbRelation
 │   ├── ParseTreeToString.h // Class that converts a Hyrise AST to string
-│   ├── SQLExec.h // Execute a Hyrise AST with SQLExec and return a QueryResult
-│   ├── SlottedPage.h // Definition for SlottedPage, a heap implementation of DbBlock
-│   ├── heap_storage.h // header file that includes SlottedPage.h, HeapTable.h, and HeapFile.h
+│   ├── sql_exec.h // Execute a Hyrise AST with SQLExec and return a QueryResult
+│   ├── slotted_page.h // Definition for SlottedPage, a heap implementation of DbBlock
+│   ├── heap_storage.h // header file that includes slotted_page.h, heap_table.h, and heap_file.h
 │   ├── schema_tables.h // Definition of schema tables like _tables and _columns
 │   └── storage_engine.h // Definition of the ADTs DbBlock, DbFile, and DbRelation
 ├── obj/ // Build directory
 ├── src/
-│   ├── HeapFile.cpp // Implementation of HeapFile
-│   ├── HeapTable.cpp // Implementation of HeapTable
+│   ├── heap_file.cpp // Implementation of HeapFile
+│   ├── heap_table.cpp // Implementation of HeapTable
 │   ├── ParseTreeToString.cpp // Implementation of ParseTreeToString
-│   ├── SQLExec.cpp // Implementation of SQLExec
-│   ├── SlottedPage.cpp // Implementation of SlottedPage
+│   ├── sql_exec.cpp // Implementation of SQLExec
+│   ├── slotted_page.cpp // Implementation of SlottedPage
 │   ├── schema_tables.cpp // Implementation of Tables and Columns
 │   ├── sql5300.cpp // driver class implementation. Includes setup for DbEnv and a SQL shell
 │   └── storage_engine.cpp // Implementation of equality functions for the ADT DB classes

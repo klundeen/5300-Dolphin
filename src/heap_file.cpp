@@ -1,9 +1,9 @@
 /**
- * @file HeapFile.cpp
+ * @file heap_file.cpp
  * @author K Lundeen
  * @see Seattle University, CPSC5300
  */
-#include "HeapFile.h"
+#include "heap_file.h"
 #include "db_cxx.h"
 #include <cstring>
 
