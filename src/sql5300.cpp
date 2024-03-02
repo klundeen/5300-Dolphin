@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <string>
+#include "btree.h"
 
 using namespace std;
 using namespace hsql;
@@ -34,31 +35,24 @@ int main(int argc, char *argv[]) {
 
     // Enter the SQL shell loop
     while (true) {
-        cout << "SQL> " << std::flush;
+        cout << "SQL> ";
         string query;
         getline(cin, query);
-        // If we ^d break the loop
-        if (std::cin.eof())
-            break;
         if (query.length() == 0)
-            continue; // blank line -- just skip
+            continue;  // blank line -- just skip
         if (query == "quit")
-            break; // only way to get out
+            break;  // only way to get out
         if (query == "test") {
-            cout << "test_heap_storage: "
-                 << (test_heap_storage() ? "ok" : "failed") << endl;
+            cout << "test_heap_storage: " << (test_heap_storage() ? "ok" : "failed") << endl;
+            cout << "test_btree: " << (test_btree() ? "ok" : "failed") << endl;
             continue;
         }
 
         // parse and execute
         SQLParserResult *parse = SQLParser::parseSQLString(query);
         if (!parse->isValid()) {
-            std::cerr << parse->errorMsg() << '\n';
-            std::cerr << query << '\n';
-            for (int i = 0; i < parse->errorColumn() - 1; i++) {
-                std::cerr << '.';
-            }
-            std::cerr << "^ Here\n";
+            cout << "invalid SQL: " << query << endl;
+            cout << parse->errorMsg() << endl;
         } else {
             for (uint i = 0; i < parse->size(); ++i) {
                 const SQLStatement *statement = parse->getStatement(i);
@@ -74,7 +68,6 @@ int main(int argc, char *argv[]) {
         }
         delete parse;
     }
-    SQLExec::close();
     return EXIT_SUCCESS;
 }
 

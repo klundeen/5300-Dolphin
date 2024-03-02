@@ -35,11 +35,6 @@ class Tables : public HeapTable {
 
     virtual ~Tables() {}
 
-    /**
-     * Clears the table cache and closes all tables.
-     */
-    static void clear_cache();
-
     // HeapTable overrides
     virtual void create();
 
@@ -122,11 +117,6 @@ class Indices : public HeapTable {
     Indices();
 
     virtual ~Indices() {}
-
-    /**
-     * Clears the table cache and closes all indices.
-     */
-    static void clear_cache();
 
     /**
      * Get the search key for the given index.

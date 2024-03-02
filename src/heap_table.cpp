@@ -124,6 +124,21 @@ Handles *HeapTable::select(const ValueDict *where) {
 }
 
 /**
+ * Refine another selection
+ *
+ * @param current_selection range of handles to filter
+ * @param where             predicates to match
+ * @return                  list of handles of the selected rows
+ */
+Handles *HeapTable::select(Handles *current_selection, const ValueDict *where) {
+    Handles *handles = new Handles();
+    for (auto const &handle: *current_selection)
+        if (selected(handle, where))
+            handles->push_back(handle);
+    return handles;
+}
+
+/**
  * Project all columns from a given row.
  * @param handle row to be projected
  * @return a sequence of all values for handle
@@ -307,3 +322,117 @@ bool HeapTable::selected(Handle handle, const ValueDict *where) {
     delete row;
     return is_selected;
 }
+
+/**
+ * Test helper. Sets the row's a and b values.
+ * @param row to set
+ * @param a column value
+ * @param b column value
+ */
+void test_set_row(ValueDict &row, int a, string b) {
+    row["a"] = Value(a);
+    row["b"] = Value(b);
+    row["c"] = Value(a % 2 == 0);  // true for even, false for odd
+}
+
+/**
+ * Test helper. Compares row to expected values for columns a and b.
+ * @param table    relation where row is
+ * @param handle   row to check
+ * @param a        expected column value
+ * @param b        expected column value
+ * @return         true if actual == expected for both columns, false otherwise
+ */
+bool test_compare(DbRelation &table, Handle handle, int a, string b) {
+    ValueDict *result = table.project(handle);
+    Value value = (*result)["a"];
+    if (value.n != a) {
+        delete result;
+        return false;
+    }
+    value = (*result)["b"];
+    if (value.s != b) {
+		delete result;
+        return false;
+	}
+    value = (*result)["c"];
+    delete result;
+    if (value.n != (a % 2 == 0))
+        return false;
+    return true;
+
+}
+
+/**
+ * Testing function for heap storage engine.
+ * @return true if the tests all succeeded
+ */
+bool test_heap_storage() {
+    if (!test_slotted_page())
+        return assertion_failure("slotted page tests failed");
+    cout << endl << "slotted page tests ok" << endl;
+
+    ColumnNames column_names;
+    column_names.push_back("a");
+    column_names.push_back("b");
+    column_names.push_back("c");
+    ColumnAttributes column_attributes;
+    ColumnAttribute ca(ColumnAttribute::INT);
+    column_attributes.push_back(ca);
+    ca.set_data_type(ColumnAttribute::TEXT);
+    column_attributes.push_back(ca);
+    ca.set_data_type(ColumnAttribute::BOOLEAN);
+    column_attributes.push_back(ca);
+
+    HeapTable table1("_test_create_drop_cpp", column_names, column_attributes);
+    table1.create();
+    cout << "create ok" << endl;
+    table1.drop();  // drop makes the object unusable because of BerkeleyDB restriction -- maybe want to fix this some day
+    cout << "drop ok" << endl;
+
+    HeapTable table("_test_data_cpp", column_names, column_attributes);
+    table.create_if_not_exists();
+    cout << "create_if_not_exists ok" << endl;
+
+    ValueDict row;
+    string b = "Four score and seven years ago our fathers brought forth on this continent, a new nation, conceived in Liberty, and dedicated to the proposition that all men are created equal.";
+    test_set_row(row, -1, b);
+    table.insert(&row);
+    cout << "insert ok" << endl;
+    Handles *handles = table.select();
+    if (!test_compare(table, (*handles)[0], -1, b))
+        return false;
+    cout << "select/project ok " << handles->size() << endl;
+    delete handles;
+
+    Handle last_handle;
+    for (int i = 0; i < 1000; i++) {
+        test_set_row(row, i, b);
+        last_handle = table.insert(&row);
+    }
+    handles = table.select();
+    if (handles->size() != 1001)
+        return false;
+    int i = -1;
+    for (auto const &handle: *handles) {
+        if (!test_compare(table, handle, i++, b))
+            return false;
+    }
+    cout << "many inserts/select/projects ok" << endl;
+    delete handles;
+
+    table.del(last_handle);
+    handles = table.select();
+    if (handles->size() != 1000)
+        return false;
+    i = -1;
+    for (auto const &handle: *handles) {
+        if (!test_compare(table, handle, i++, b))
+            return false;
+    }
+    cout << "del ok" << endl;
+    table.drop();
+    delete handles;
+    return true;
+}
+
