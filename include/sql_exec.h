@@ -7,6 +7,7 @@
 
 #include "SQLParser.h"
 #include "schema_tables.h"
+#include "eval_plan.h"
 #include <exception>
 #include <string>
 

@@ -161,8 +161,67 @@ QueryResult *SQLExec::insert(const InsertStatement *statement) {
     return new QueryResult(message);
 }
 
+void parse_expr(Expr *expr, ValueDict &where) {
+    switch (expr->opType) {
+    case Expr::AND:
+        parse_expr(expr->expr, where);
+        parse_expr(expr->expr2, where);
+        break;
+    case Expr::SIMPLE_OP: {
+        Expr *col_expr = expr->expr;
+        Expr *val_expr = expr->expr2;
+        string column_name = col_expr->name;
+        if (val_expr->type == kExprLiteralInt) {
+            where[column_name] = Value(val_expr->ival);
+        } else if (val_expr->type == kExprLiteralString) {
+            where[column_name] = Value(val_expr->name);
+        } else {
+            throw SQLExecError("Not supported literal type");
+        }
+        break;
+    }
+    default:
+        throw SQLExecError("Not supported operation type");
+    }
+}
+
 QueryResult *SQLExec::del(const DeleteStatement *statement) {
-    return new QueryResult("DELETE statement not yet implemented"); // FIXME
+
+    ValueDict where;
+    if (statement->expr != nullptr)
+        parse_expr(statement->expr, where);
+
+    Identifier table_name = statement->tableName;
+    DbRelation &table = tables->get_table(table_name);
+    EvalPlan *relation = new EvalPlan(table);
+
+    EvalPlan *plan = relation;
+    if (!where.empty())
+        plan = new EvalPlan(&where, relation);
+
+    Handles *handles = plan->optimize()->pipeline().second;
+    IndexNames index_names = SQLExec::indices->get_index_names(table_name);
+    try {
+        for (Identifier &index_name : index_names) {
+            DbIndex &index = indices->get_index(table_name, index_name);
+            for (Handle &handle : *handles) {
+                // index.del(handle); // TODO: implement del in BTreeIndex
+            }
+        }
+
+        for (Handle &handle : *handles)
+            table.del(handle);
+    } catch (exception &e) {
+        // TODO: rollback
+        throw;
+    }
+  
+    string message = "successfully deleted " + to_string(handles->size()) +
+                     " rows from " + table_name;
+    if (index_names.size() > 0)
+        message += " and " + to_string(index_names.size()) + " indices";
+
+    return new QueryResult(message);
 }
 
 QueryResult *SQLExec::select(const SelectStatement *statement) {
