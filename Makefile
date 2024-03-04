@@ -14,7 +14,7 @@ sql_exec schema_tables  \
 eval_plan btree_node btree \
 storage_engine ParseTreeToString
 
-HDRS 		= $(FILES) heap_storage
+HDRS 		= $(FILES) heap_storage debug
 OBJS 		= $(FILES) sql5300
 
 HDRS_PATH  	= $(addprefix $(INC_DIR)/, $(addsuffix .h, $(HDRS)))

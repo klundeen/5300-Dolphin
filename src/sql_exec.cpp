@@ -5,6 +5,9 @@
  */
 #include "sql_exec.h"
 
+#define DEBUG_ENABLED
+#include "debug.h"
+
 using namespace std;
 using namespace hsql;
 
@@ -225,7 +228,34 @@ QueryResult *SQLExec::del(const DeleteStatement *statement) {
 }
 
 QueryResult *SQLExec::select(const SelectStatement *statement) {
-    return new QueryResult("SELECT statement not yet implemented"); // FIXME
+    DEBUG_OUT("SQLExec::select() - begin\n");
+    ValueDict where;
+    if (statement->whereClause != nullptr) {
+        parse_expr(statement->whereClause, where);
+    }
+
+    TableRef *table_ref = statement->fromTable;
+    DbRelation &table = tables->get_table(table_ref->getName());
+
+    // start base of plan at a TableScan
+    EvalPlan *plan = new EvalPlan(table);
+
+    // enclose that in a Select if we have a where clause
+    if (!where.empty()) {
+        plan = new EvalPlan(&where, plan);
+    }
+
+    // now wrap the whole thing in a ProjectAll or a Project
+    plan = new EvalPlan(EvalPlan::ProjectAll, plan); // FIXME only support projectall for now
+
+    EvalPlan *optimized = plan->optimize();
+    ValueDicts *rows = optimized->evaluate();
+
+    ColumnNames *column_names = new ColumnNames(table.get_column_names());
+    ColumnAttributes *column_attributes = new ColumnAttributes(table.get_column_attributes());
+
+    DEBUG_OUT("SQLExec::select() - end\n");
+    return new QueryResult(column_names, column_attributes, rows, "successfully returned " + to_string(rows->size()) + " rows");
 }
 
 void SQLExec::column_definition(const ColumnDefinition *col,
