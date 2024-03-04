@@ -229,33 +229,53 @@ QueryResult *SQLExec::del(const DeleteStatement *statement) {
 
 QueryResult *SQLExec::select(const SelectStatement *statement) {
     DEBUG_OUT("SQLExec::select() - begin\n");
-    ValueDict where;
-    if (statement->whereClause != nullptr) {
-        parse_expr(statement->whereClause, where);
-    }
-
-    TableRef *table_ref = statement->fromTable;
-    DbRelation &table = tables->get_table(table_ref->getName());
 
     // start base of plan at a TableScan
+    DEBUG_OUT("SQLExec::select() - TableScan\n");
+    TableRef *table_ref = statement->fromTable;
+    DbRelation &table = tables->get_table(table_ref->getName());
     EvalPlan *plan = new EvalPlan(table);
 
     // enclose that in a Select if we have a where clause
-    if (!where.empty()) {
+    ValueDict where;
+    if (statement->whereClause != nullptr) {
+        DEBUG_OUT("SQLExec::select() - Select\n");
+        parse_expr(statement->whereClause, where);
         plan = new EvalPlan(&where, plan);
+    } else {
+        DEBUG_OUT("SQLExec::select() - NO Select\n");
     }
 
     // now wrap the whole thing in a ProjectAll or a Project
-    plan = new EvalPlan(EvalPlan::ProjectAll, plan); // FIXME only support projectall for now
+    ColumnNames *projection;
+    if (statement->selectList != nullptr) {
+        if (kExprStar == statement->selectList->front()->type) {
+            DEBUG_OUT("SQLExec::select() - ProjectAll\n");
+            projection = new ColumnNames(table.get_column_names());
+            plan = new EvalPlan(EvalPlan::ProjectAll, plan);
+        } else {
+            DEBUG_OUT("SQLExec::select() - Project\n");
+            projection = new ColumnNames();
+            for (Expr *expr : *statement->selectList) {
+                projection->push_back(expr->name);
+            }
+            plan = new EvalPlan(projection, plan);
+        }
+    } else {
+        throw SQLExecError("NULL selectList");
+    }
 
+    // optimize the plan and evaluate the optimized plan
+    DEBUG_OUT("SQLExec::select() - Optimize and Evaluate\n");
     EvalPlan *optimized = plan->optimize();
     ValueDicts *rows = optimized->evaluate();
 
-    ColumnNames *column_names = new ColumnNames(table.get_column_names());
+    // get applicable column names and attributes for final result
+    // ColumnNames *column_names = 
     ColumnAttributes *column_attributes = new ColumnAttributes(table.get_column_attributes());
 
     DEBUG_OUT("SQLExec::select() - end\n");
-    return new QueryResult(column_names, column_attributes, rows, "successfully returned " + to_string(rows->size()) + " rows");
+    return new QueryResult(projection, column_attributes, rows, "successfully returned " + to_string(rows->size()) + " rows");
 }
 
 void SQLExec::column_definition(const ColumnDefinition *col,
