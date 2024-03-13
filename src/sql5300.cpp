@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
             break;  // only way to get out
         if (query == "test") {
             cout << "test_heap_storage: " << (test_heap_storage() ? "ok" : "failed") << endl;
-            // cout << "test_btree: " << (test_btree() ? "ok" : "failed") << endl; // FIXME core dumping right now
+            cout << "test_btree: " << (test_btree() ? "ok" : "failed") << endl;
             continue;
         }
 

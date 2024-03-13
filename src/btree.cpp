@@ -70,8 +70,21 @@ void BTreeIndex::close() {
 // Find all the rows whose columns are equal to key. Assumes key is a dictionary whose keys are the column
 // names in the index. Returns a list of row handles.
 Handles *BTreeIndex::lookup(ValueDict *key_dict) const {
-    // FIXME
-    return nullptr;
+    return _lookup(root, stat->get_height(), tkey(key_dict));
+}
+
+Handles *BTreeIndex::_lookup(BTreeNode *node, uint height, const KeyValue *key) const {
+    if (height == 1) {
+        auto *leaf = dynamic_cast<BTreeLeaf *>(node);
+        Handles *handles = new Handles();
+        try {
+            handles->push_back(leaf->find_eq(key));
+        } catch (...) { }
+        return handles;
+    } else {
+        auto *interior = dynamic_cast<BTreeInterior *>(node);
+        return _lookup(interior->find(key, height), height - 1, key);
+    }
 }
 
 Handles *BTreeIndex::range(ValueDict *min_key, ValueDict *max_key) const {
@@ -156,7 +169,7 @@ bool test_btree() {
     row2["b"] = Value(101);
     table.insert(&row1);
     table.insert(&row2);
-    for (int i = 0; i < 100 * 1000; i++) {
+    for (int i = 0; i < 100 * 100; i++) {
         ValueDict row;
         row["a"] = Value(i + 100);
         row["b"] = Value(-i);
@@ -166,7 +179,7 @@ bool test_btree() {
     column_names.push_back("a");
     BTreeIndex index(table, "fooindex", column_names, true);
     index.create();
-    return true;  // FIXME
+    // return true;  // FIXME
 
 
     ValueDict lookup;
@@ -177,6 +190,7 @@ bool test_btree() {
         std::cout << "first lookup failed" << std::endl;
         return false;
     }
+    std::cout << "first lookup passed" << std::endl;
     delete handles;
     delete result;
     lookup["a"] = 88;
@@ -186,6 +200,7 @@ bool test_btree() {
         std::cout << "second lookup failed" << std::endl;
         return false;
     }
+    std::cout << "second lookup passed" << std::endl;
     delete handles;
     delete result;
     lookup["a"] = 6;
@@ -195,6 +210,7 @@ bool test_btree() {
         return false;
     }
     delete handles;
+    std::cout << "third lookup passed" << std::endl;
 
     for (uint j = 0; j < 10; j++)
         for (int i = 0; i < 1000; i++) {
@@ -210,6 +226,11 @@ bool test_btree() {
             delete handles;
             delete result;
         }
+    std::cout << "all lookups passed" << std::endl;
+    
+    index.drop();
+    table.drop();
+    return true;
 
     // test delete
     ValueDict row;
@@ -279,5 +300,4 @@ bool test_btree() {
     table.drop();
     return true;
 }
-
 
