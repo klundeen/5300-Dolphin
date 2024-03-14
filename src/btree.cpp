@@ -70,7 +70,10 @@ void BTreeIndex::close() {
 // Find all the rows whose columns are equal to key. Assumes key is a dictionary whose keys are the column
 // names in the index. Returns a list of row handles.
 Handles *BTreeIndex::lookup(ValueDict *key_dict) const {
-    return _lookup(root, stat->get_height(), tkey(key_dict));
+    auto t_key = tkey(key_dict);
+    auto ret = _lookup(root, stat->get_height(), t_key);
+    delete t_key;
+    return ret;
 }
 
 Handles *BTreeIndex::_lookup(BTreeNode *node, uint height, const KeyValue *key) const {
@@ -79,11 +82,15 @@ Handles *BTreeIndex::_lookup(BTreeNode *node, uint height, const KeyValue *key) 
         Handles *handles = new Handles();
         try {
             handles->push_back(leaf->find_eq(key));
-        } catch (...) { }
+        } catch (...) { 
+        }
         return handles;
     } else {
         auto *interior = dynamic_cast<BTreeInterior *>(node);
-        return _lookup(interior->find(key, height), height - 1, key);
+        auto n = interior->find(key, height);
+        auto ret = _lookup(n, height - 1, key);
+        delete n;
+        return ret;
     }
 }
 
@@ -121,7 +128,9 @@ Insertion BTreeIndex::_insert(BTreeNode *node, uint height, const KeyValue *key,
         return leaf->insert(key, handle);
     } else {
         auto *interior = dynamic_cast<BTreeInterior *>(node);
-        Insertion insertion = _insert(interior->find(key, height), height - 1, key, handle);
+        auto n = interior->find(key, height);
+        Insertion insertion = _insert(n, height - 1, key, handle);
+        delete n;
         if (!BTreeNode::insertion_is_none(insertion))
             insertion = interior->insert(&insertion.second, insertion.first);
         return insertion;

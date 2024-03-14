@@ -370,6 +370,7 @@ BTreeLeaf::BTreeLeaf(HeapFile &file, BlockID block_id, const KeyProfile &key_pro
                 // record i-1: handle, record i: key
                 KeyValue *key_value = get_key(i);
                 this->key_map[*key_value] = get_handle(i - 1);
+                delete key_value;
             }
             i++;
         }
@@ -468,8 +469,11 @@ Insertion BTreeLeaf::insert(const KeyValue *key, Handle handle) {
         cout << " starting at value " << boundary[0] << endl; // DEBUG
 
         nleaf->save();
+        auto nleaf_id = nleaf->id;
+        delete nleaf;
         this->save();
-        return Insertion(nleaf->id, boundary);
+
+        return Insertion(nleaf_id, boundary);
     }
 }
 
