@@ -294,6 +294,7 @@ QueryResult *SQLExec::select(const SelectStatement *statement) {
     DEBUG_OUT("SQLExec::select() - Optimize and Evaluate\n");
     EvalPlan *optimized = plan->optimize();
     ValueDicts *rows = optimized->evaluate();
+    delete optimized;
 
     // get applicable column names and attributes for final result
     // ColumnNames *column_names = 
