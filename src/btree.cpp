@@ -62,6 +62,7 @@ void BTreeIndex::open() {
     if (closed) {
         file.open();
         stat = new BTreeStat(file, STAT, key_profile);
+        delete root;
         if (stat->get_height() == 1)
             root = new BTreeLeaf(file, stat->get_root_id(), key_profile, false);
         else
