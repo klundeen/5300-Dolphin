@@ -5,6 +5,9 @@
  */
 #include "btree.h"
 
+// #define DEBUG_ENABLED
+#include "debug.h"
+
 BTreeIndex::BTreeIndex(DbRelation &relation, Identifier name, ColumnNames key_columns, bool unique) : DbIndex(relation,
                                                                                                               name,
                                                                                                               key_columns,
@@ -27,19 +30,31 @@ BTreeIndex::~BTreeIndex() {
 
 // Create the index.
 void BTreeIndex::create() {
+    DEBUG_OUT("BTreeIndex::create() - begin\n");
     file.create();
     stat = new BTreeStat(file, STAT, STAT + 1, key_profile);
     root = new BTreeLeaf(file, stat->get_root_id(), key_profile, true);
     closed = false;
     Handles *table_rows = relation.select();
-    for (auto const &row: *table_rows)
-        insert(row);
+    try {
+        DEBUG_OUT("BTreeIndex::create() - try\n");
+        for (auto const &row: *table_rows) {
+            insert(row);
+        }
+    } catch (...) {
+        DEBUG_OUT("BTreeIndex::create() - catch\n");
+        drop();
+        throw;
+    }
     delete table_rows;
+    DEBUG_OUT("BTreeIndex::create() - end\n");
 }
 
 // Drop the index.
 void BTreeIndex::drop() {
+    DEBUG_OUT("BTreeIndex::drop() - begin\n");
     file.drop();
+    DEBUG_OUT("BTreeIndex::drop() - end\n");
 }
 
 // Open existing index. Enables: lookup, range, insert, delete, update.
