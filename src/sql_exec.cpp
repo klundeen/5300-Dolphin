@@ -202,7 +202,9 @@ QueryResult *SQLExec::del(const DeleteStatement *statement) {
     if (!where.empty())
         plan = new EvalPlan(&where, relation);
 
-    Handles *handles = plan->optimize()->pipeline().second;
+    EvalPlan *optimized = plan->optimize();
+    Handles *handles = optimized->pipeline().second;
+    delete optimized;
     IndexNames index_names = SQLExec::indices->get_index_names(table_name);
     vector<CreateStatement *> create_statements;
     try {
