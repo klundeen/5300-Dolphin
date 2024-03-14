@@ -204,16 +204,34 @@ QueryResult *SQLExec::del(const DeleteStatement *statement) {
 
     Handles *handles = plan->optimize()->pipeline().second;
     IndexNames index_names = SQLExec::indices->get_index_names(table_name);
+    vector<CreateStatement *> create_statements;
     try {
-        for (Identifier &index_name : index_names) {
-            DbIndex &index = indices->get_index(table_name, index_name);
-            for (Handle &handle : *handles) {
-                // index.del(handle); // TODO: implement del in BTreeIndex
-            }
+        for (Identifier index_name : index_names) {
+            ColumnNames index_columns;
+            bool is_unique = false, is_hash = false;
+            SQLExec::indices->get_columns(table_name, index_name, index_columns, is_hash, is_unique);
+            
+            auto create_statement = new CreateStatement(CreateStatement::CreateType::kIndex);
+            create_statement->tableName = (char *)(table_name.c_str());
+            create_statement->indexName = (char *)(index_name.c_str());
+            create_statement->indexType = (char *)(is_hash ? "HASH" : "BTREE");
+            create_statement->indexColumns = new vector<char *>();
+            for (auto col_name : index_columns)
+                create_statement->indexColumns->push_back((char *) col_name.c_str());
+            create_statements.push_back(create_statement);
+            
+            auto drop_statement = new DropStatement(DropStatement::EntityType::kIndex);
+            drop_statement->name = (char *)(table_name.c_str());
+            drop_statement->indexName = (char *)(index_name.c_str());
+            drop_index(drop_statement);
         }
 
         for (Handle &handle : *handles)
             table.del(handle);
+
+        for (auto create_statement : create_statements) 
+            create_index(create_statement);
+        
     } catch (exception &e) {
         // TODO: rollback
         throw;
