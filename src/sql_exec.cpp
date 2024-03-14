@@ -224,6 +224,8 @@ QueryResult *SQLExec::del(const DeleteStatement *statement) {
             drop_statement->name = (char *)(table_name.c_str());
             drop_statement->indexName = (char *)(index_name.c_str());
             drop_index(drop_statement);
+
+            delete drop_statement;
         }
 
         for (Handle &handle : *handles)
@@ -231,6 +233,9 @@ QueryResult *SQLExec::del(const DeleteStatement *statement) {
 
         for (auto create_statement : create_statements) 
             create_index(create_statement);
+
+        for (auto &create_statement : create_statements) 
+            delete create_statement;
         
     } catch (exception &e) {
         // TODO: rollback
@@ -241,6 +246,8 @@ QueryResult *SQLExec::del(const DeleteStatement *statement) {
                      " rows from " + table_name;
     if (index_names.size() > 0)
         message += " and " + to_string(index_names.size()) + " indices";
+
+    delete handles;
 
     return new QueryResult(message);
 }
