@@ -225,9 +225,7 @@ QueryResult *SQLExec::del(const DeleteStatement *statement) {
             auto drop_statement = new DropStatement(DropStatement::EntityType::kIndex);
             drop_statement->name = (char *)(table_name.c_str());
             drop_statement->indexName = (char *)(index_name.c_str());
-            QueryResult *dummy = drop_index(drop_statement);
-            delete dummy;
-            delete drop_statement;
+            delete drop_index(drop_statement);
         }
 
         for (Handle &handle : *handles)
@@ -236,9 +234,6 @@ QueryResult *SQLExec::del(const DeleteStatement *statement) {
         for (auto create_statement : create_statements) 
             create_index(create_statement);
 
-        for (auto &create_statement : create_statements) 
-            delete create_statement;
-        
     } catch (exception &e) {
         // TODO: rollback
         throw;
